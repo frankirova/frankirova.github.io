@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ISP Platform</title>
+    <script>
+      // Resolve the colour scheme before first paint: a dark-mode operator must
+      // not see a white flash while the bundle loads. Mirrors readInitialThemeChoice
+      // and resolveTheme in src/lib/theme.tsx; inline because it has to run first.
+      (function () {
+        try {
+          var stored = localStorage.getItem("isp.theme");
+          var choice =
+            stored === "dark" || stored === "light" ? stored : "system";
+          var dark =
+            choice === "dark" ||
+            (choice === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch (error) {
+          // Storage or matchMedia blocked: the light tokens stay in place.
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/isp-platform/assets/index-DzexmFNz.js"></script>
+    <link rel="stylesheet" crossorigin href="/isp-platform/assets/index-VC3cNWmD.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
