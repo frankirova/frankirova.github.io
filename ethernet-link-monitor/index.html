@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>enlaces · monitor Ethernet</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="../">← Inicio</a> · <a href="https://github.com/frankirova/ethernet-link-monitor">Repositorio</a></div>
+<a class="skip" href="#links">Saltar a los enlaces</a>
+
+<main class="panel">
+  <header class="masthead">
+    <h1 class="mark">enlaces</h1>
+    <p class="statusline">
+      <span class="mode" id="mode" data-mode="unknown">—</span>
+      <span class="sep" aria-hidden="true">·</span>
+      <span id="scan">sin escaneo</span>
+      <span class="sep" aria-hidden="true">·</span>
+      <span id="age">—</span>
+    </p>
+  </header>
+
+  <section class="verdict" aria-labelledby="verdict-heading">
+    <h2 class="sr-only" id="verdict-heading">Estado de los enlaces</h2>
+    <p class="sentence" id="sentence">Leyendo el monitor…</p>
+    <p class="breakdown" id="breakdown"></p>
+    <p class="note" id="note" hidden></p>
+    <p class="note note-demo" id="demo-note" hidden>Datos sintéticos: sin red y sin Telegram.</p>
+    <p class="sr-only" id="announcer" role="status" aria-live="polite"></p>
+  </section>
+
+  <ul class="links" id="links" aria-describedby="breakdown"></ul>
+
+  <section class="alerts" aria-labelledby="alerts-heading">
+    <h2 class="micro" id="alerts-heading">último aviso</h2>
+    <p class="alert-text" id="alert-text">—</p>
+  </section>
+
+
+  <section class="sim" aria-labelledby="sim-heading">
+    <h2 class="micro" id="sim-heading">simulador</h2>
+    <p class="sim-help">Provocá una falla y mirá cómo reacciona el monitor: confirma el cambio tras 2 escaneos (unos 4 segundos) y recién ahí manda el aviso.</p>
+    <div class="sim-controls">
+      <label for="sim-host">Equipo</label>
+      <select id="sim-host"></select>
+      <button type="button" data-sim="DOWN">Puerto caído</button>
+      <button type="button" data-sim="LOW">Velocidad baja</button>
+      <button type="button" data-sim="UNREACHABLE">Sin respuesta SNMP</button>
+      <button type="button" data-sim="OK">Recuperar equipo</button>
+      <button type="button" data-sim="ALL">Recuperar todo</button>
+    </div>
+    <h3 class="micro">así llegaría a Telegram (simulado, nada se envía)</h3>
+    <ul class="tg" id="tg" aria-live="polite"><li class="tg-empty">Sin mensajes todavía.</li></ul>
+  </section>
+
+  <footer class="colophon">
+    <span id="provenance">—</span>
+    <span class="colophon-note">visor: cerrar esta página no detiene el monitoreo</span>
+  </footer>
+</main>
+
+<script src="demo-shim.js"></script>
+<script src="app.js" defer></script>
+</body>
+</html>
