@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Clientes · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+</head>
+<body class="customers-page">
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Clientes</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab active" aria-current="page" href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<section class="card module-page customer-list-page">
+  <div class="card-header"><h1>Clientes</h1></div>
+  <div class="card-body">
+    <form class="admin-form module-filter-form" method="get" action="/clientes" role="search">
+      <div class="field"><label class="field-label" for="client-query">Buscar por código, documento, nombre o IP</label>
+        <input id="client-query" type="search" name="q" value="" placeholder="Código, documento, nombre o IP…" autocomplete="off" spellcheck="false"></div>
+      <div class="customer-primary-filters">
+        
+
+<div class="field">
+  
+  <span class="field-label" id="filter-status-label">Estado</span>
+  
+  
+  <details class="customer-status-filter">
+    <summary aria-describedby="filter-status-label">Estado: Todos</summary>
+    <div class="customer-status-options">
+      <p class="muted">Sin selección: todos.</p>
+      <label><input type="checkbox" name="status" value="blocked">Bloqueado</label><label><input type="checkbox" name="status" value="enabled">Habilitado</label>
+    </div>
+  </details>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-node">Nodo</label>
+  <select id="filter-node" name="node">
+    <option value="">Nodo: todos</option>
+    <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="Nodo Centro">Nodo Centro</option><option value="Nodo Este">Nodo Este</option><option value="Nodo Norte">Nodo Norte</option><option value="Nodo Sur">Nodo Sur</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-plan">Plan</label>
+  <select id="filter-plan" name="plan">
+    <option value="">Plan: todos</option>
+    <option value="10 Mbps">10 Mbps</option><option value="30 Mbps">30 Mbps</option><option value="50 Mbps">50 Mbps</option><option value="PYME PLUS 2">PYME PLUS 2</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-debt">Deuda total</label>
+  <select id="filter-debt" name="debt">
+    <option value="">Deuda total: todos</option>
+    <option value="positive">Con deuda</option><option value="credit">Saldo a favor</option><option value="zero">Saldo cero</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+      </div>
+      <details class="module-filter-advanced">
+        <summary>Más filtros</summary>
+        <div class="module-filter-grid">
+          
+
+<div class="field">
+  <label class="field-label" for="filter-city">Localidad</label>
+  <select id="filter-city" name="city">
+    <option value="">Localidad: todos</option>
+    <option value="__missing__">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-province">Provincia</label>
+  <select id="filter-province" name="province">
+    <option value="">Provincia: todos</option>
+    <option value="__missing__">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-ap">AP</label>
+  <select id="filter-ap" name="ap">
+    <option value="">AP: todos</option>
+    <option value="AP-Centro-02">AP-Centro-02</option><option value="AP-Centro-04">AP-Centro-04</option><option value="AP-Centro-06">AP-Centro-06</option><option value="AP-Este-02">AP-Este-02</option><option value="AP-Este-04">AP-Este-04</option><option value="AP-Este-06">AP-Este-06</option><option value="AP-Norte-01">AP-Norte-01</option><option value="AP-Norte-03">AP-Norte-03</option><option value="AP-Norte-05">AP-Norte-05</option><option value="AP-Sur-01">AP-Sur-01</option><option value="AP-Sur-03">AP-Sur-03</option><option value="AP-Sur-05">AP-Sur-05</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-router">Router de acceso</label>
+  <select id="filter-router" name="router">
+    <option value="">Router de acceso: todos</option>
+    <option value="__missing__">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-ftthbox">Caja FTTH</label>
+  <select id="filter-ftthbox" name="ftthbox">
+    <option value="">Caja FTTH: todos</option>
+    <option value="__missing__">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-equipment">Equipo</label>
+  <select id="filter-equipment" name="equipment">
+    <option value="">Equipo: todos</option>
+    <option value="__missing__">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-block">Bloqueo registrado</label>
+  <select id="filter-block" name="block">
+    <option value="">Bloqueo registrado: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-connections">Conexiones en caché</label>
+  <select id="filter-connections" name="connections">
+    <option value="">Conexiones en caché: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-ip">IP registrada</label>
+  <select id="filter-ip" name="ip">
+    <option value="">IP registrada: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-phone">Teléfono</label>
+  <select id="filter-phone" name="phone">
+    <option value="">Teléfono: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-email">Email</label>
+  <select id="filter-email" name="email">
+    <option value="">Email: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-tickets_open">Tickets abiertos</label>
+  <select id="filter-tickets_open" name="tickets_open">
+    <option value="">Tickets abiertos: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-tickets_closed">Tickets cerrados</label>
+  <select id="filter-tickets_closed" name="tickets_closed">
+    <option value="">Tickets cerrados: todos</option>
+    <option value="no">No</option><option value="yes">Sí</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+
+<div class="field">
+  <label class="field-label" for="filter-overdue">Deuda vencida</label>
+  <select id="filter-overdue" name="overdue">
+    <option value="">Deuda vencida: todos</option>
+    <option value="positive">Con deuda</option><option value="credit">Saldo a favor</option><option value="zero">Saldo cero</option><option value="unknown">Sin dato</option>
+  </select>
+  
+</div>
+
+          
+          <div class="field"><label class="field-label" for="filter-debt_min">Deuda total desde</label>
+            <input id="filter-debt_min" type="number" inputmode="decimal" step="any" name="debt_min" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+          <div class="field"><label class="field-label" for="filter-debt_max">Deuda total hasta</label>
+            <input id="filter-debt_max" type="number" inputmode="decimal" step="any" name="debt_max" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+          <div class="field"><label class="field-label" for="filter-overdue_min">Deuda vencida desde</label>
+            <input id="filter-overdue_min" type="number" inputmode="decimal" step="any" name="overdue_min" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+          <div class="field"><label class="field-label" for="filter-overdue_max">Deuda vencida hasta</label>
+            <input id="filter-overdue_max" type="number" inputmode="decimal" step="any" name="overdue_max" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+          <div class="field"><label class="field-label" for="filter-price_min">Precio del plan desde</label>
+            <input id="filter-price_min" type="number" inputmode="decimal" step="any" name="price_min" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+          <div class="field"><label class="field-label" for="filter-price_max">Precio del plan hasta</label>
+            <input id="filter-price_max" type="number" inputmode="decimal" step="any" name="price_max" value="" placeholder="Sin límite…" autocomplete="off"></div>
+          
+        </div>
+        <p class="muted module-help">Importes inclusivos. Sin dato no significa saldo cero ni cliente habilitado. Nodo, plan y equipo incluyen las conexiones registradas en caché.</p>
+      </details>
+      <input type="hidden" name="sort" value="">
+      <input type="hidden" name="direction" value="desc">
+      <div class="field page-size-field"><label class="field-label" for="page-size">Filas por página</label><input id="page-size" name="page_size" type="number" inputmode="numeric" min="1" max="1000" step="1" value="200" autocomplete="off"></div>
+      <div class="module-filter-actions">
+        <button class="btn primary" type="submit">Aplicar filtros</button>
+        <a class="btn ghost" href="/rm-tools/clientes/">Limpiar filtros</a>
+      </div>
+    </form>
+
+    
+    <div class="table-scroll"><table>
+      <thead><tr><th scope="col">#</th><th><a href="/rm-tools/clientes/">Código</a></th><th><a href="/rm-tools/clientes/">Cliente</a></th><th><a href="/rm-tools/clientes/">Estado</a></th><th><a href="/rm-tools/clientes/">IP</a></th><th><a href="/rm-tools/clientes/">Saldo</a></th></tr></thead>
+      <tbody><tr data-code="001024">
+        <td class="mono">1</td>
+        <td class="mono"><a href="/rm-tools/clientes/001024/">001024</a></td>
+        <td class="module-name">LÓPEZ OCAMPO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">127.0.0.1</td>
+        <td class="mono">32.400</td>
+      </tr><tr data-code="001022">
+        <td class="mono">2</td>
+        <td class="mono"><a href="/rm-tools/clientes/001022/">001022</a></td>
+        <td class="module-name">SILVA GALLARDO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.32</td>
+        <td class="mono">30.100</td>
+      </tr><tr data-code="001021">
+        <td class="mono">3</td>
+        <td class="mono"><a href="/rm-tools/clientes/001021/">001021</a></td>
+        <td class="module-name">GIMÉNEZ PAZ</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.31</td>
+        <td class="mono">28.950</td>
+      </tr><tr data-code="001020">
+        <td class="mono">4</td>
+        <td class="mono"><a href="/rm-tools/clientes/001020/">001020</a></td>
+        <td class="module-name">CLÍNICA DEL SOL S.A.</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.30</td>
+        <td class="mono">27.800</td>
+      </tr><tr data-code="001018">
+        <td class="mono">5</td>
+        <td class="mono"><a href="/rm-tools/clientes/001018/">001018</a></td>
+        <td class="module-name">TORRES QUIROGA</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.28</td>
+        <td class="mono">25.500</td>
+      </tr><tr data-code="001017">
+        <td class="mono">6</td>
+        <td class="mono"><a href="/rm-tools/clientes/001017/">001017</a></td>
+        <td class="module-name">ROMERO BENÍTEZ</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.27</td>
+        <td class="mono">24.350</td>
+      </tr><tr data-code="001016">
+        <td class="mono">7</td>
+        <td class="mono"><a href="/rm-tools/clientes/001016/">001016</a></td>
+        <td class="module-name">FERNÁNDEZ JUÁREZ</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.26</td>
+        <td class="mono">23.200</td>
+      </tr><tr data-code="001014">
+        <td class="mono">8</td>
+        <td class="mono"><a href="/rm-tools/clientes/001014/">001014</a></td>
+        <td class="module-name">ROJAS CUELLO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.24</td>
+        <td class="mono">20.900</td>
+      </tr><tr data-code="001013">
+        <td class="mono">9</td>
+        <td class="mono"><a href="/rm-tools/clientes/001013/">001013</a></td>
+        <td class="module-name">MEDINA LAFUENTE</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.23</td>
+        <td class="mono">19.750</td>
+      </tr><tr data-code="001012">
+        <td class="mono">10</td>
+        <td class="mono"><a href="/rm-tools/clientes/001012/">001012</a></td>
+        <td class="module-name">ACOSTA SARMIENTO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.22</td>
+        <td class="mono">18.600</td>
+      </tr><tr data-code="001010">
+        <td class="mono">11</td>
+        <td class="mono"><a href="/rm-tools/clientes/001010/">001010</a></td>
+        <td class="module-name">PANADERÍA LA ESPIGA</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.20</td>
+        <td class="mono">16.300</td>
+      </tr><tr data-code="001009">
+        <td class="mono">12</td>
+        <td class="mono"><a href="/rm-tools/clientes/001009/">001009</a></td>
+        <td class="module-name">LÓPEZ TOLEDO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.19</td>
+        <td class="mono">15.150</td>
+      </tr><tr data-code="001008">
+        <td class="mono">13</td>
+        <td class="mono"><a href="/rm-tools/clientes/001008/">001008</a></td>
+        <td class="module-name">GÓMEZ ESCOBAR</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.18</td>
+        <td class="mono">14.000</td>
+      </tr><tr data-code="001006">
+        <td class="mono">14</td>
+        <td class="mono"><a href="/rm-tools/clientes/001006/">001006</a></td>
+        <td class="module-name">GIMÉNEZ URQUIZA</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.16</td>
+        <td class="mono">11.700</td>
+      </tr><tr data-code="001005">
+        <td class="mono">15</td>
+        <td class="mono"><a href="/rm-tools/clientes/001005/">001005</a></td>
+        <td class="module-name">COOPERATIVA EL PROGRESO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.15</td>
+        <td class="mono">10.550</td>
+      </tr><tr data-code="001004">
+        <td class="mono">16</td>
+        <td class="mono"><a href="/rm-tools/clientes/001004/">001004</a></td>
+        <td class="module-name">BENÍTEZ OCAMPO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.14</td>
+        <td class="mono">9.400</td>
+      </tr><tr data-code="001002">
+        <td class="mono">17</td>
+        <td class="mono"><a href="/rm-tools/clientes/001002/">001002</a></td>
+        <td class="module-name">ROMERO GALLARDO</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.12</td>
+        <td class="mono">7.100</td>
+      </tr><tr data-code="001001">
+        <td class="mono">18</td>
+        <td class="mono"><a href="/rm-tools/clientes/001001/">001001</a></td>
+        <td class="module-name">FERNÁNDEZ PAZ</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">192.0.2.11</td>
+        <td class="mono">5.950</td>
+      </tr><tr data-code="001000">
+        <td class="mono">19</td>
+        <td class="mono"><a href="/rm-tools/clientes/001000/">001000</a></td>
+        <td class="module-name">ESTUDIO CONTABLE ANDES S.R.L.</td>
+        
+        <td><span class="chip err">Bloqueado</span></td>
+        <td class="mono">198.51.100.10</td>
+        <td class="mono">4.800</td>
+      </tr><tr data-code="001003">
+        <td class="mono">20</td>
+        <td class="mono"><a href="/rm-tools/clientes/001003/">001003</a></td>
+        <td class="module-name">TORRES VARGAS</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.13</td>
+        <td class="mono">0</td>
+      </tr><tr data-code="001007">
+        <td class="mono">21</td>
+        <td class="mono"><a href="/rm-tools/clientes/001007/">001007</a></td>
+        <td class="module-name">SILVA NAVARRO</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.17</td>
+        <td class="mono">0</td>
+      </tr><tr data-code="001011">
+        <td class="mono">22</td>
+        <td class="mono"><a href="/rm-tools/clientes/001011/">001011</a></td>
+        <td class="module-name">RAMÍREZ DUARTE</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.21</td>
+        <td class="mono">0</td>
+      </tr><tr data-code="001015">
+        <td class="mono">23</td>
+        <td class="mono"><a href="/rm-tools/clientes/001015/">001015</a></td>
+        <td class="module-name">TALLER RODRÍGUEZ S.R.L.</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.25</td>
+        <td class="mono">0</td>
+      </tr><tr data-code="001019">
+        <td class="mono">24</td>
+        <td class="mono"><a href="/rm-tools/clientes/001019/">001019</a></td>
+        <td class="module-name">BENÍTEZ IBÁÑEZ</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.29</td>
+        <td class="mono">0</td>
+      </tr><tr data-code="001023">
+        <td class="mono">25</td>
+        <td class="mono"><a href="/rm-tools/clientes/001023/">001023</a></td>
+        <td class="module-name">MARTÍNEZ VARGAS</td>
+        
+        <td><span class="chip ok">Habilitado</span></td>
+        <td class="mono">192.0.2.33</td>
+        <td class="mono">0</td>
+      </tr></tbody>
+    </table></div>
+    
+    
+    <div class="customer-results-footer">
+    <p class="muted module-count" role="status" data-total="25" data-matched="25">Mostrando 25 de 25 clientes · 25 en caché.</p>
+    
+    <nav class="listing-pagination" aria-label="Páginas de clientes">
+      
+      <span>Página 1 de 1</span>
+      
+    </nav>
+    
+    </div>
+  </div>
+</section>
+
+
+
+    
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

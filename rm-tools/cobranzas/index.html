@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Cobranzas · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+  <link rel="stylesheet" href="/rm-tools/static/cobranzas.css">
+  <script src="/rm-tools/static/cobranzas.js" defer></script>
+
+</head>
+<body>
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Cobranzas</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab " href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab active" aria-current="page" href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<section class="card module-page">
+  <div class="card-header"><h1>Cobranzas</h1></div>
+  <div class="card-body">
+    <p>Generá el archivo de deuda para Autogestión con una lectura completa y actual de ISPCube. Antes de descargarlo vas a ver una vista previa.</p>
+    <p class="muted">No modifica ISPCube ni publica datos en Autogestión. El CSV contiene datos personales: compartilo solo con personas autorizadas.</p>
+    
+    <form action="/cobranzas/exportar" method="post" data-cobranzas-export data-demo-blocked title="No disponible en la demo">
+      <button class="btn primary" type="submit">Generar CSV</button>
+      <span role="status" data-cobranzas-status><span class="spinner" aria-hidden="true"></span><span data-cobranzas-message></span></span>
+    </form>
+    <p class="muted">La generación puede demorar. Mientras se procesa, se muestra «Generando CSV…» y el botón queda deshabilitado. Si falla la validación o la consulta, no se guarda ni se descarga un CSV parcial.</p>
+  </div>
+</section>
+<section class="card module-page">
+  <div class="card-header"><h2>Historial</h2></div>
+  <div class="card-body">
+    <div class="module-meta"><span>Archivos: <strong class="mono">3</strong></span></div>
+    
+    <div class="table-scroll"><table>
+      <thead><tr>
+        <th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Fecha</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Archivo</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Usuario</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Filas</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Débito</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Vigentes</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/cobranzas/">Vencidos</a></th>
+        <th scope="col" aria-label="Acciones"></th>
+      </tr></thead>
+      <tbody><tr>
+        <td class="mono">16/10/2026 18:40</td>
+        <td><a href="/rm-tools/no-disponible/">deudas_autogestion_16-10-2026.csv</a></td>
+        <td>soporte1</td>
+        <td class="mono">13</td>
+        <td class="mono">0</td>
+        <td class="mono">125.300</td>
+        <td class="mono">177.400</td>
+        <td><a class="btn ghost" href="/rm-tools/no-disponible/">Descargar</a></td>
+      </tr><tr>
+        <td class="mono">23/10/2026 18:40</td>
+        <td><a href="/rm-tools/no-disponible/">deudas_autogestion_23-10-2026.csv</a></td>
+        <td>soporte1</td>
+        <td class="mono">13</td>
+        <td class="mono">0</td>
+        <td class="mono">125.300</td>
+        <td class="mono">177.400</td>
+        <td><a class="btn ghost" href="/rm-tools/no-disponible/">Descargar</a></td>
+      </tr><tr>
+        <td class="mono">30/10/2026 18:40</td>
+        <td><a href="/rm-tools/no-disponible/">deudas_autogestion_30-10-2026.csv</a></td>
+        <td>soporte1</td>
+        <td class="mono">13</td>
+        <td class="mono">0</td>
+        <td class="mono">125.300</td>
+        <td class="mono">177.400</td>
+        <td><a class="btn ghost" href="/rm-tools/no-disponible/">Descargar</a></td>
+      </tr></tbody>
+    </table></div>
+    
+  </div>
+</section>
+
+
+    
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

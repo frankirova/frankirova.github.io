@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>LÓPEZ TOLEDO · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+<meta name="customer-tool-version" content="1794768182">
+
+</head>
+<body class="client-detail">
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Clientes</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab active" aria-current="page" href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<div id="customer-body" data-customer-code="001009" data-customer-name="LÓPEZ TOLEDO" data-customer-fresh="false" data-customer-auto-refresh="1" data-customer-fetched-at="2026-11-16T15:33:25.686113+00:00" data-customer-state="blocked" data-customer-debt="15150.0">
+
+
+
+
+<div id="client-info">
+<section class="client-header"><div class="client-bar"><p class="notice warn" data-customer-status role="status" aria-live="polite">Datos sin confirmar</p><span class="muted" data-customer-freshness-detail></span><span class="info-dot" tabindex="0" role="note" aria-label="Detalle de actualización"></span></div><div class="client-title-row"><div class="client-identity"><div class="client-avatar" aria-hidden="true">LT</div><div class="client-identity-text"><h1 class="client-name" data-copy="LÓPEZ TOLEDO" data-copy-label="Cliente">LÓPEZ TOLEDO</h1><span class="client-id" data-copy="001009" data-copy-label="ID">ID: 001009 </span> <span class="client-id" data-selected-connection-ip data-copy="192.0.2.19" data-copy-label="IP">IP: <span>192.0.2.19</span> </span></div></div><div class="quick-actions"><button class="btn btn-icon" type="button" data-customer-refresh aria-label="Actualizar cliente desde ISPCube" title="Actualizar cliente desde ISPCube"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 7a9 9 0 1 0 1 8M20 3v5h-5"/></svg><span>Actualizar</span></button><button class="btn btn-copy btn-icon" type="button" data-copy-block="#client-info" data-copy-icon aria-label="Copiar datos" title="Copiar datos"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 9h11v13H9Z M15 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><span>Copiar datos</span></button>
+<a class="btn primary btn-icon" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0C5.4 0 .1 5.3.1 11.9c0 2.1.6 4.2 1.6 6L0 24l6.3-1.7a11.9 11.9 0 0 0 5.7 1.5h.1c6.6 0 11.9-5.3 11.9-11.9 0-3.2-1.2-6.2-3.5-8.4ZM12 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.7 1 1-3.6-.3-.4a9.9 9.9 0 1 1 8.4 4.6Zm5.4-7.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.2-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.2-1.3-.5-2.5-1.6-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.5-.6.3-.5c.1-.2 0-.4 0-.6l-1-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 5 4.4.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.8-.7 2.1-1.5.3-.7.3-1.3.2-1.5-.1-.1-.3-.2-.6-.4Z"/></svg><span>WhatsApp</span></a><button class="btn btn-icon" type="button" data-customer-edit-open aria-controls="customer-edit" aria-label="Editar cliente" title="Editar cliente"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 3 21 8M3 21l5-1L21 7a2 2 0 0 0-4-4L4 16Z"/></svg><span>Editar</span></button><details class="action-menu" data-action-menu><summary class="btn btn-icon" aria-label="Más acciones"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg><span>Más acciones</span></summary><div class="action-menu-panel" role="menu" aria-label="Más acciones"><button class="action-menu-item customer-action-enable" type="button" role="menuitem" data-enable-open aria-controls="customer-enable"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg><span>Habilitar<small>Restaura el servicio</small></span></button><button class="action-menu-item customer-action-reconnect" type="button" role="menuitem" data-reconnect-open aria-controls="customer-reconnect"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span>Reconexión<small>Orden de desconexión</small></span></button><button class="action-menu-item customer-action-cancel" type="button" role="menuitem" data-cancellation-open aria-controls="customer-cancellation"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM2 21v-2a7 7 0 0 1 14 0v2M17 11h6"/></svg><span>Dar de baja<small>Bloquea al cliente al instante</small></span></button></div></details>
+</div></div><section aria-label="Resumen administrativo" class="rail is-err"><div class="rail-verdict status-disabled"><span class="kv-k">Estado administrativo</span><span class="verdict">BLOQUEADO</span></div><div class="rail-money"><div class="money rail-ping"><span class="kv-k">Ping</span><button type="button" class="verdict" data-ping-monitor-open aria-controls="ping-monitor" aria-haspopup="dialog" title="Abrir ping en vivo" data-ping-indicator data-ping-state="unknown" aria-live="polite">sin consultar</button></div><div class="money is-due"><span class="kv-k">Deuda total</span><span class="amount secondary">$ 15.150</span></div></div><div class="rail-meta"><span class="kv-k">Plan</span><strong data-copy="30 Mbps · $ 9.800" data-copy-label="Plan">30 Mbps</strong><span class="amount">$ 9.800</span></div></section></section>
+
+</div>
+<div class="customer-workspace" data-customer-tabs>
+
+<div class="customer-tablist" role="tablist" aria-label="Información del cliente">
+<button class="customer-tab" id="customer-tab-technical" type="button" role="tab" aria-controls="customer-panel-technical" aria-selected="true" tabindex="0">Técnica</button>
+<button class="customer-tab" id="customer-tab-wifi" type="button" role="tab" aria-controls="customer-panel-wifi" aria-selected="false" tabindex="-1">Router Wi-Fi</button>
+<button class="customer-tab" id="customer-tab-account" type="button" role="tab" aria-controls="customer-panel-account" aria-selected="false" tabindex="-1">Cuenta corriente</button>
+<button class="customer-tab" id="customer-tab-contact" type="button" role="tab" aria-controls="customer-panel-contact" aria-selected="false" tabindex="-1">Contacto</button>
+</div>
+<div class="customer-tab-layout">
+<div class="customer-panels">
+<section class="customer-panel" id="customer-panel-technical" role="tabpanel" aria-labelledby="customer-tab-technical" tabindex="0"><div class="client-grid">
+<section id="customer-connection" class="card technical-card" aria-label="Antena · datos guardados" data-antenna-auto="true"><div class="card-header">Conexión y antena <span class="chip">Datos guardados</span></div><div class="card-body"><select id="antenna-selection" aria-label="Conexión seleccionada"><option value="9009" data-connection-ip="192.0.2.19">Conexión 9009 · IP 192.0.2.19</option></select>
+
+<div class="kv antenna-metrics" id="antena-9009">
+  <div class="card-header antenna-header">
+    <span>Estado técnico <span class="antenna-identity">Conexión 9009 · IP 192.0.2.19</span></span>
+    <span class="chip antenna-current">vigente</span>
+  </div>
+  
+  <section class="antenna-measurements" aria-label="Mediciones del enlace">
+    <p class="antenna-link-caption">Comparación del enlace · última lectura guardada</p>
+    <div class="link-cards">
+      
+      
+      
+      
+      <article class="link-card">
+        <header class="link-card-head">
+          <span class="link-card-title">LOCAL</span>
+          <span class="link-card-eth">eth0 · 100 Mbps · full</span>
+        </header>
+        <div class="link-card-signal" title="Señal RX de estación asociada">
+          <span class="sig-bars sig-warn" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span>
+          <span class="link-card-dbm">-61.30 dBm</span><span class="chip link-quality warn">Buena</span>
+        </div>
+        <div class="link-card-capacity">
+          <div class="link-row"><span class="link-k">Capacidad</span><span class="link-v">60.00 Mbps</span></div>
+          <span class="antenna-measurements-bar" role="meter" aria-label="Capacidad Local medida en Mbps, escala compartida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60"><span class="antenna-measurements-fill" style="width: 60.0%"></span></span>
+        </div>
+        <dl class="link-grid">
+          
+          <div class="link-row"><dt class="link-k">RX</dt><dd class="link-v">14.40 Mbps</dd></div>
+          
+          <div class="link-row"><dt class="link-k">TX</dt><dd class="link-v">2.60 Mbps</dd></div>
+          
+          <div class="link-row"><dt class="link-k">Ruido</dt><dd class="link-v">-96.00 dBm</dd></div>
+          
+          <div class="link-row"><dt class="link-k">CCQ</dt><dd class="link-v">96.00 %</dd></div>
+          
+        </dl>
+      </article>
+      
+      
+      
+      
+      <article class="link-card">
+        <header class="link-card-head">
+          <span class="link-card-title">REMOTO</span>
+          <span class="link-card-eth">eth0 · 100 Mbps · full</span>
+        </header>
+        <div class="link-card-signal" title="Señal remota">
+          <span class="sig-bars sig-ok" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+          <span class="link-card-dbm">-59.20 dBm</span><span class="chip link-quality ok">Excelente</span>
+        </div>
+        <div class="link-card-capacity">
+          <div class="link-row"><span class="link-k">Capacidad</span><span class="link-v">15.00 Mbps</span></div>
+          <span class="antenna-measurements-bar" role="meter" aria-label="Capacidad Remoto medida en Mbps, escala compartida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15"><span class="antenna-measurements-fill" style="width: 15.0%"></span></span>
+        </div>
+        <dl class="link-grid">
+          
+          <div class="link-row"><dt class="link-k">RX</dt><dd class="link-v">2.60 Mbps</dd></div>
+          
+          <div class="link-row"><dt class="link-k">TX</dt><dd class="link-v">14.40 Mbps</dd></div>
+          
+          <div class="link-row"><dt class="link-k">Ruido</dt><dd class="link-v">-94.00 dBm</dd></div>
+          
+          <div class="link-row"><dt class="link-k">CCQ</dt><dd class="link-v">95.00 %</dd></div>
+          
+        </dl>
+      </article>
+      
+    </div>
+
+    
+  </section>
+  
+  <details class="antenna-diagnostics">
+    <summary>Administración</summary>
+    <div class="antenna-management">
+      
+      <div class="port-editor">
+        <form method="post" action="/admin/antenas/9009/puerto" hx-post="/admin/antenas/9009/puerto" hx-target="#antena-9009" hx-swap="outerHTML" hx-disabled-elt="input, button" data-demo-blocked title="No disponible en la demo">
+          <input type="hidden" name="csrf_token" value="demo-sin-token">
+          <label class="port-label" for="port-9009">Puerto de gestión <span class="port-current">1431 (predeterminado)</span></label>
+          <input id="port-9009" name="port" type="number" min="1" max="65535" inputmode="numeric" placeholder="1431" value="">
+          <button type="submit" class="btn">Guardar</button>
+        </form>
+        
+      </div>
+      
+      
+      <div class="family-switch" role="group" aria-label="Familia de la antena">
+        <span class="family-label">Familia</span>
+        <form method="post" action="/admin/antenas/9009/familia" hx-post="/admin/antenas/9009/familia" hx-target="#antena-9009" hx-swap="outerHTML" hx-disabled-elt="input, button" data-demo-blocked title="No disponible en la demo">
+          <input type="hidden" name="csrf_token" value="demo-sin-token">
+          <button type="submit" class="family-opt family-airmax" name="family" value="airMAX" aria-pressed="false">AirM</button>
+          <button type="submit" class="family-opt family-ac is-active" name="family" value="AC" aria-pressed="true" disabled>AC</button>
+        </form>
+      </div>
+      
+    </div>
+  </details>
+  <div class="kv-row antenna-updated antenna-snapshot-footer"><span class="kv-k"><span class="noncustomer-label">Último dato actualizado</span><span class="customer-label">airOS </span></span><span class="kv-v"><span class="noncustomer-label">2026-11-16T15:33:25.698877+00:00</span><span class="customer-label"><time data-customer-antenna-time datetime="2026-11-16T15:33:25.698877+00:00">Hora no disponible</time> · vigente</span></span></div>
+  <div class="kv-row antenna-ping-updated antenna-ping-footer"><span class="kv-k"><span class="noncustomer-label">Último PING</span><span class="customer-label">Ping </span></span><span class="kv-v"><span class="customer-live-ping chip" data-customer-ping>up</span><span class="noncustomer-label">2026-11-16T12:33:25.702172+00:00 · up · vigente (30 s)</span><span class="ping-saved-time customer-label">Actualizado 12:33 · vigente (30 s) <span class="info-dot" tabindex="0" role="note" aria-label="Detalle de actualización" title="Último PING: 2026-11-16T12:33:25.702172+00:00 · up · vigente (30 s)"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 8h.01M12 11v6"/></svg></span></span></span></div>
+  
+  <div class="antenna-actions">
+    <div class="toolbar">
+      <button class="btn btn-icon" type="button" hx-post="/antenas/9009/actualizar" hx-target="#antena-9009" hx-swap="outerHTML" hx-disabled-elt="this" aria-label="Actualizar antena" title="Actualizar antena"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 7a9 9 0 1 0 1 8M20 3v5h-5"/></svg></button>
+      <button class="btn btn-icon" type="button" hx-post="/antenas/9009/ping" hx-target="#antena-9009" hx-swap="outerHTML" hx-disabled-elt="this" aria-label="PING" title="PING"><svg class="customer-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor"/></g></svg></button>
+    </div>
+  </div>
+  
+</div>
+<details class="connection-details"><summary>Detalles de conexión</summary><dl class="connection-identity"><dt>IP</dt><dd data-selected-connection-ip data-copy="192.0.2.19" data-copy-label="IP"><span>192.0.2.19</span> </dd><dt>AP</dt><dd data-copy="AP-Centro-04" data-copy-label="AP">AP-Centro-04</dd><dt>Nodo</dt><dd data-copy="Nodo Centro" data-copy-label="Nodo">Nodo Centro</dd></dl></details><p data-antenna-status role="status" aria-live="polite">Solo se consulta la conexión seleccionada.</p></div></section>
+</div></section>
+<section class="customer-panel" id="customer-panel-wifi" role="tabpanel" aria-labelledby="customer-tab-wifi" tabindex="0">
+
+<section class="card wifi-card" id="customer-wifi" aria-label="Router Wi-Fi del cliente" data-router-wifi data-wifi-code="001009" data-wifi-csrf="1794844120.c40bdc1f8c042d03731b80f8f8386ece04a4e72870b4f836700d4c557cef71ac">
+<div class="card-header wifi-head"><span class="wifi-title">Router Wi-Fi <span class="chip">Conexión seleccionada en Técnica</span></span><div class="wifi-actions"><button class="btn" type="button" data-wifi-action="current"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 7a9 9 0 1 0 1 8M20 3v5h-5"/></svg> Leer router</button><button class="btn primary" type="button" data-wifi-action="devices"><svg class="customer-action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></g></svg> Dispositivos</button></div></div>
+<div class="card-body">
+
+<details class="wifi-options"><summary>Opciones de conexión · puerto <span data-wifi-port-summary>1802</span></summary>
+<div class="wifi-row"><label class="field wifi-port"><span class="field-label">Puerto</span><input type="number" name="port" min="1" max="65535" value="1802" data-wifi-field="port"></label>
+<div class="wifi-force"><label class="wifi-check"><input type="checkbox" data-wifi-field="force"> Tomar una sesión existente</label><span class="muted">Solo modern-md5; cierra la sesión web activa del router.</span></div></div></details>
+<div class="wifi-toolbar"><div class="wifi-band-filter" role="group" aria-label="Banda a mostrar"><button class="btn" type="button" data-wifi-band-filter="2.4GHz" aria-pressed="false">2.4 GHz</button><button class="btn" type="button" data-wifi-band-filter="5GHz" aria-pressed="false">5 GHz</button><button class="btn" type="button" data-wifi-band-filter="all" aria-pressed="true">Todas</button></div><span class="muted wifi-band-hint" data-wifi-band-hint hidden></span></div>
+<div data-wifi-current aria-live="polite"></div>
+<div class="wifi-bands" data-wifi-bands>
+<section class="wifi-band" data-wifi-panel="2.4GHz" aria-label="2.4 GHz"><h3 class="wifi-band-title">2.4 GHz</h3>
+<p class="muted wifi-band-note" data-wifi-hint>Leé el router para editar</p>
+<div class="field"><label class="field-label" for="wifi-ssid_2g">Red</label><input id="wifi-ssid_2g" maxlength="32" autocomplete="off" data-wifi-field="ssid_2g" data-wifi-kind="ssid" disabled><span class="wifi-error" data-wifi-error role="alert" hidden></span></div>
+<div class="field"><label class="field-label" for="wifi-new_password">Clave</label><span class="wifi-pass-row"><input id="wifi-new_password" type="password" maxlength="63" autocomplete="new-password" data-wifi-field="new_password" data-wifi-kind="pass" disabled> <button class="btn" type="button" data-wifi-toggle>Mostrar</button></span><span class="wifi-error" data-wifi-error role="alert" hidden></span></div></section>
+<section class="wifi-band" data-wifi-panel="5GHz" aria-label="5 GHz"><h3 class="wifi-band-title">5 GHz</h3><p class="muted wifi-band-note" data-wifi-unavailable hidden>Este router no informa 5 GHz</p>
+<p class="muted wifi-band-note" data-wifi-hint>Leé el router para editar</p>
+<div class="field"><label class="field-label" for="wifi-ssid_5g">Red</label><input id="wifi-ssid_5g" maxlength="32" autocomplete="off" data-wifi-field="ssid_5g" data-wifi-kind="ssid" disabled><span class="wifi-error" data-wifi-error role="alert" hidden></span></div>
+<div class="field"><label class="field-label" for="wifi-new_password_5g">Clave</label><span class="wifi-pass-row"><input id="wifi-new_password_5g" type="password" maxlength="63" autocomplete="new-password" data-wifi-field="new_password_5g" data-wifi-kind="pass" disabled> <button class="btn" type="button" data-wifi-toggle>Mostrar</button></span><span class="wifi-error" data-wifi-error role="alert" hidden></span></div></section>
+</div>
+<div class="wifi-submit"><span class="muted wifi-dirty" data-wifi-dirty aria-live="polite" hidden></span><button class="btn" type="button" data-wifi-discard disabled>Descartar</button><button class="btn primary" type="button" data-wifi-save disabled>Guardar cambios</button></div>
+<p class="muted wifi-footnote">Moderno: ambas bandas · Legacy: solo 2.4 GHz.</p>
+<div data-wifi-result aria-live="polite"></div>
+
+</div>
+<dialog class="modal wifi-devices-modal" id="wifi-devices" data-backdrop-close aria-labelledby="wifi-devices-title"><div class="modal-head"><h2 id="wifi-devices-title">Dispositivos conectados</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div><div class="modal-body" data-wifi-devices aria-live="polite"></div></dialog>
+<dialog class="modal modal-sm wifi-confirm" id="wifi-confirm" aria-labelledby="wifi-confirm-title"><div class="modal-head"><h2 id="wifi-confirm-title">Confirmar cambio de Wi-Fi</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div><div class="modal-body"><p data-wifi-confirm-message role="status"></p><ul class="wifi-confirm-list" data-wifi-confirm-list></ul></div><div class="modal-foot"><button class="btn" type="button" data-modal-close>Cancelar</button><button class="btn danger" type="button" data-wifi-confirm-accept>Confirmar</button></div></dialog>
+</section>
+</section>
+<section class="customer-panel" id="customer-panel-account" role="tabpanel" aria-labelledby="customer-tab-account" tabindex="0"><section class="card statement-card" id="customer-account"><div class="card-header"><span>Cuenta corriente</span><button class="btn primary" data-customer-account-action hx-sync="this:drop" hx-post="/clientes/001009/cuenta" hx-target="#cuenta" hx-swap="innerHTML" hx-indicator="#cuenta-spinner">Ver cuenta corriente <span class="spinner" id="cuenta-spinner"></span></button></div><div class="card-body"><p data-account-feedback role="status" aria-live="polite"></p><div class="cuenta-skeleton" id="cuenta-skeleton" role="presentation" aria-hidden="true" hidden><span class="skeleton skeleton-row skeleton-row-lg"></span><span class="skeleton skeleton-row"></span><span class="skeleton skeleton-row skeleton-row-sm"></span></div><div id="cuenta">
+
+
+  
+  <div class="rail-money statement-summary">
+    
+      <div class="money">
+        <span class="kv-k">saldo anterior</span>
+        <span class="amount secondary">$ -24.050,00</span>
+      </div>
+    
+    <div class="money">
+      <span class="kv-k">facturado</span>
+      <span class="amount secondary">$ 58.800,00</span>
+    </div>
+    
+    <div class="money">
+      <span class="kv-k">cobrado</span>
+      <span class="amount secondary">$ 19.600,00</span>
+    </div>
+    <div class="money is-warn">
+      <span class="kv-k">saldo</span>
+      <span class="amount secondary">$ 15.150,00</span>
+    </div>
+  </div>
+  
+    <p class="statement-copy">
+      <button type="button" class="btn-copy" data-saldo-message data-copy="Hola! Tu saldo actual es de $15.150. Cualquier duda, avisanos." aria-label="Copiar mensaje con el detalle del saldo">Copiar mensaje</button>
+    </p>
+  
+  
+  <div class="table-scroll">
+    <table class="statement-table">
+      <thead>
+        <tr>
+          
+          <th>
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=fecha&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Fecha</a>
+          </th>
+          
+          <th>
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=tipo&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Tipo</a>
+          </th>
+          
+          <th>
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=numero&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Número</a>
+          </th>
+          
+          <th class="statement-desc">
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=descripcion&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Descripción</a>
+          </th>
+          
+          <th class="num">
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=importe&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Total</a>
+          </th>
+          
+          <th class="num">
+            <a href="/rm-tools/clientes/001009/" hx-get="/clientes/001009/cuenta?page=1&amp;statement_sort=saldo&amp;statement_direction=desc" hx-target="#cuenta" hx-swap="innerHTML">Saldo</a>
+          </th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr class="fila-pago">
+            <td>2026-11-05</td>
+            <td>
+              Efectivo
+              
+            </td>
+            <td class="mono">820090</td>
+            <td class="statement-desc">Pago Noviembre 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">15.150,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-11-01</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500901</td>
+            <td class="statement-desc">Noviembre 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">24.950,00</td>
+          </tr>
+        
+          <tr class="fila-pago">
+            <td>2026-10-06</td>
+            <td>
+              Efectivo
+              
+            </td>
+            <td class="mono">820091</td>
+            <td class="statement-desc">Pago Octubre 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">15.150,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-10-02</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500902</td>
+            <td class="statement-desc">Octubre 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">24.950,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-09-02</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500903</td>
+            <td class="statement-desc">Septiembre 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">15.150,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-08-03</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500904</td>
+            <td class="statement-desc">Agosto 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">5.350,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-07-04</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500905</td>
+            <td class="statement-desc">Julio 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">-4.450,00</td>
+          </tr>
+        
+          <tr class="fila-factura">
+            <td>2026-06-04</td>
+            <td>
+              A
+              
+            </td>
+            <td class="mono">0001-00500906</td>
+            <td class="statement-desc">Junio 2026</td>
+            <td class="num">9.800,00</td>
+            <td class="num">-14.250,00</td>
+          </tr>
+        
+          <tr class="fila-apertura">
+            <td>—</td>
+            <td>
+              —
+              <span class="chip info">saldo anterior</span>
+              
+            </td>
+            <td class="mono"></td>
+            <td class="statement-desc">Saldo anterior a la ventana consultada</td>
+            <td class="num">-24.050,00</td>
+            <td class="num">-24.050,00</td>
+          </tr>
+        
+      </tbody>
+    </table>
+  </div>
+</div></div></section></section>
+<section class="customer-panel" id="customer-panel-contact" role="tabpanel" aria-labelledby="customer-tab-contact" tabindex="0"><section class="card contact-card" id="customer-contact"><div class="card-header">Contacto y ubicación <button class="btn btn-copy btn-icon" type="button" data-copy-block="#customer-contact" data-copy-icon aria-label="Copiar contacto" title="Copiar contacto"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 9h11v13H9Z M15 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg></button></div><div class="card-body"><p class="muted">Contacto y ubicación del padrón; no confirmados por la lectura de cliente.</p><div class="kv"><div class="kv-row" data-copy="Calle 27 de Abril 132, San Vicente" data-copy-label="Domicilio"><span class="kv-k">Domicilio</span><span class="kv-v copiable">Calle 27 de Abril 132, San Vicente</span></div><div class="kv-row"><span class="kv-k">Entre calles</span><span class="kv-v">sin entrecalles</span></div><div class="kv-row"><span class="kv-k">Localidad</span><span class="kv-v">—</span></div></div></div><div class="card-body contact-continuation"><div class="kv"><div class="kv-row" data-copy="+54 9 11 5555-1009" data-copy-label="Teléfono"><span class="kv-k">Teléfonos</span><span class="kv-v copiable">+54 9 11 5555-1009</span></div><div class="kv-row" data-copy="001009@correo.test" data-copy-label="Email"><span class="kv-k">Email</span><span class="kv-v copiable">001009@correo.test</span></div><div class="kv-row" data-copy="29.109.363" data-copy-label="Documento"><span class="kv-k">Documento</span><span class="kv-v copiable">29.109.363</span></div><div class="kv-row"><span class="kv-k">Latitud, longitud</span><span class="kv-v"><span class="chip">sin datos</span></span></div></div></div></section></section>
+</div>
+<aside class="customer-ticket-rail"><section class="card tickets-card" id="customer-tickets" aria-label="Tickets del cliente"><p class="muted ticket-source-note" data-ticket-age data-tickets-open-fetched-at="2026-11-16T15:33:25.901308+00:00" data-tickets-closed-fetched-at="2026-11-16T15:33:25.904025+00:00">Sin actualización confirmada</p><div class="card-header">Tickets (1) <a class="btn primary" href="#new-ticket" aria-controls="new-ticket" aria-expanded="false">+ Nuevo Ticket</a><button class="btn btn-icon" type="button" data-tickets-refresh data-tickets-refresh-url="/clientes/001009/tickets/actualizar" aria-label="Actualizar tickets" title="Actualizar tickets"><svg class="customer-action-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 7a9 9 0 1 0 1 8M20 3v5h-5"/></svg></button></div><div class="ticket-filters" role="group" aria-label="Filtrar tickets"><button class="btn" type="button" data-ticket-filter="open" aria-pressed="true">Abiertos</button><button class="btn" type="button" data-ticket-filter="recent" aria-pressed="false">Recientes</button></div><div class="card-body"><div class="customer-ticket-list"><article class="customer-ticket" data-ticket-state="unknown" data-ticket-created="2026-11-04T00:00:00.000000Z"><div><h3><span class="muted">#8809</span> SIN INTERNET</h3><div class="ticket-meta"><span class="chip">En curso</span><span class="chip">Baja</span></div><p class="muted">Creado 2026-11-04</p></div><a class="btn" href="/rm-tools/no-disponible/" hx-get="/tickets/8809/detalle" hx-target="#ticket-detail-body" hx-swap="innerHTML" data-ticket-open aria-label="Abrir ticket 8809">Abrir</a></article></div><p class="empty muted" data-ticket-filter-empty hidden><span data-ticket-empty="open">Sin tickets abiertos confirmados en la lista guardada.</span><span data-ticket-empty="recent" hidden>Sin tickets recientes guardados.</span></p>
+<div class="customer-ticket-footer"><p class="muted">Recientes: abiertos y de estado desconocido guardados, más cerrados de la consulta de los últimos 30 días.</p>
+<p class="muted">Historial completo: «Ver historial», desde lo guardado en rm-tools.</p>
+<button class="btn" type="button" data-history-open aria-controls="ticket-history">Ver historial</button></div>
+</div></section></aside>
+</div></div>
+
+<dialog class="modal ping-monitor" id="ping-monitor" aria-labelledby="ping-monitor-title">
+  <div class="modal-head"><h2 id="ping-monitor-title">Ping en vivo</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <div class="ping-current" data-ping-latest role="status" aria-live="polite" aria-atomic="true">
+      <span class="ping-current-label">Latencia actual</span>
+      <div class="ping-current-reading"><strong data-ping-value>—</strong> <span data-ping-unit>ms</span></div>
+      <div class="ping-current-meta"><span data-ping-status>Esperando muestra…</span><span data-ping-time></span></div>
+    </div>
+    <svg viewBox="0 0 580 120" role="img" aria-label="Latencia de las últimas muestras en milisegundos" data-ping-chart></svg>
+    <p class="muted">Una muestra cada 2 segundos después de la respuesta. Últimas 30 muestras de esta apertura; al cerrar se detiene la consulta.</p>
+  </div>
+  <footer class="modal-foot"><button class="btn" type="button" data-modal-close>Cerrar</button></footer>
+</dialog>
+
+<dialog class="modal modal-sm" id="customer-edit" aria-labelledby="customer-edit-title">
+<div class="modal-head"><h2 id="customer-edit-title">Editar cliente</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+<form data-customer-edit-form>
+<div class="modal-body">
+<p class="muted">Solo se envían campos modificados y no vacíos. Los campos en blanco no se guardan ni borran datos. Se modifica el primer teléfono y email; los demás contactos se conservan.</p>
+<label class="field"><span class="field-label">Nombre</span><input name="name" type="text" maxlength="255" disabled></label>
+<label class="field"><span class="field-label">Email</span><input name="email" type="email" maxlength="254" disabled></label>
+<label class="field"><span class="field-label">Teléfono</span><input name="phone" type="tel" maxlength="80" disabled></label>
+<label class="field"><span class="field-label">Dirección</span><input name="address" type="text" maxlength="500" disabled></label>
+<p data-customer-edit-message role="status" aria-live="polite"></p>
+</div>
+<footer class="modal-foot"><button class="btn" type="button" data-modal-close>Cancelar</button><button class="btn primary" type="submit" disabled>Guardar cambios</button></footer>
+</form>
+</dialog>
+<dialog class="modal ticket-history" id="ticket-history" aria-labelledby="history-title">
+  <div class="modal-head"><h2 id="history-title">Historial de tickets</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="ticket-history-panel modal-body">
+    <p class="muted">Tickets de este cliente guardados por rm-tools, según su fecha de alta. Se actualizan con la sincronización de cada 10 minutos.</p>
+    <div class="ticket-history-dates">
+      <label class="field"><span class="field-label">Desde</span><input type="date" name="desde" aria-label="Desde" value="2025-11-16"></label>
+      <label class="field"><span class="field-label">Hasta</span><input type="date" name="hasta" aria-label="Hasta" value="2026-11-16"></label>
+    </div>
+    <div class="ticket-history-results" id="ticket-history-results" data-history-results role="region" aria-live="polite" aria-label="Resultados del historial"><p class="muted">Cargando…</p></div>
+  </div>
+  <div class="modal-foot" data-ticket-history-foot>
+    <nav class="ticket-history-pagination" id="ticket-history-nav" aria-label="Paginación del historial">
+      <button class="btn" type="button" disabled>Anterior</button>
+      <button class="btn" type="button" disabled>Siguiente</button>
+    </nav>
+    <button class="btn primary" type="button" data-history-search hx-get="/clientes/001009/tickets-historial" hx-include="#ticket-history [name='desde'], #ticket-history [name='hasta']" hx-target="#ticket-history-results" hx-swap="innerHTML" hx-sync="this:replace">Consultar</button>
+  </div>
+</dialog>
+<dialog class="modal modal-sm customer-cancellation" id="customer-cancellation" aria-labelledby="cancellation-title">
+<div class="modal-head"><h2 id="cancellation-title">Ticket: Técnica · Baja · prioridad Normal</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+<div class="modal-body">
+
+<div data-cancellation-flow><ol class="step-indicator"><li data-step="1" aria-current="step"><span class="step-num">1</span> Datos <span class="step-arrow" aria-hidden="true">→</span></li><li data-step="2"><span class="step-num">2</span> Confirmar</li></ol>
+<p class="notice warn">Se renombra y se bloquea al instante (incluso con fecha futura), y se crea el ticket. No se repiten pasos ante un resultado incierto.</p>
+<label class="field"><span class="field-label">Fecha de baja</span><input type="date" name="date" required></label>
+<label class="field" hidden><span class="field-label">Conexión del cliente</span><select name="cancellation_connection_id" required>
+
+<option value="9009" selected>Conexión #9009 · 192.0.2.19</option>
+</select></label>
+
+<label class="field"><span class="field-label">Asignado</span><select name="assigned_user_id"><option value="193" selected>Diego</option><option value="None">None</option></select></label>
+<label class="field"><span class="field-label">Observación (opcional)</span><textarea name="comment" rows="3" class="form-textarea" aria-describedby="cancellation-comment-hint"></textarea></label>
+<p class="muted" id="cancellation-comment-hint">Se agrega al comentario del ticket, después de la fecha. Si la cambiás, prepará una nueva confirmación.</p>
+<dl class="cancellation-preview"><dt>Nombre</dt><dd data-cancellation-name>Seleccioná una fecha</dd><dt>Comentario</dt><dd data-cancellation-comment>Seleccioná una fecha</dd><dt>Valores fijos del ticket</dt><dd>Técnica (6) · Baja (25) · prioridad Normal · Abierto (1)</dd></dl>
+<p data-cancellation-message role="status" aria-live="polite"></p>
+</div>
+<footer class="modal-foot"><button class="btn" type="button" data-modal-close>Cancelar</button><button class="btn" type="button" data-cancellation-preview disabled>Preparar confirmación</button><button class="btn danger" type="button" data-cancellation-confirm disabled>Confirmar baja y bloqueo inmediato</button></footer>
+<div data-cancellation-result role="status" aria-live="polite" tabindex="-1"></div>
+<p class="muted">Tras un éxito confirmado se actualizan los datos. Un resultado incierto requiere revisión manual.</p>
+</div></dialog>
+<dialog class="modal modal-sm customer-reconnect" id="customer-reconnect" aria-labelledby="reconnect-title">
+<div class="modal-head"><h2 id="reconnect-title">Reconexión (orden de desconexión)</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+<div class="modal-body">
+<ol class="step-indicator"><li data-step="1" aria-current="step"><span class="step-num">1</span> Datos <span class="step-arrow" aria-hidden="true">→</span></li><li data-step="2"><span class="step-num">2</span> Confirmar</li></ol>
+<p class="notice warn">Mueve el ticket de la ORDEN DE DESCONEXION a verificación de pago, habilita al cliente en ISPCube y restaura los objetos de MikroTik.</p>
+<label class="field"><span class="field-label">Monto abonado</span><input type="text" name="amount" inputmode="decimal" autocomplete="off" required aria-describedby="reconnect-amount-hint reconnect-amount-error"></label>
+<p class="muted" id="reconnect-amount-hint">Ej.: $12.000 o 12000,50</p>
+<p class="muted" id="reconnect-amount-error" data-reconnect-amount-error role="status" aria-live="polite"></p>
+<p data-reconnect-message role="status" aria-live="polite"></p>
+<footer class="modal-foot"><button class="btn" type="button" data-modal-close>Cancelar</button><button class="btn" type="button" data-reconnect-preview disabled>Vista previa</button><button class="btn primary" type="button" data-reconnect-confirm disabled>Confirmar</button></footer>
+<div data-reconnect-result role="status" aria-live="polite" tabindex="-1"><ol class="flow-steps" data-reconnect-steps></ol></div>
+<p class="muted">Tras un éxito confirmado se actualizan los datos. Un resultado incierto requiere revisión manual.</p>
+</div></dialog>
+<dialog class="modal modal-sm customer-enable" id="customer-enable" aria-labelledby="enable-title">
+<div class="modal-head"><h2 id="enable-title">Habilitar cliente</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+<div class="modal-body">
+<ol class="step-indicator"><li data-step="1" aria-current="step"><span class="step-num">1</span> Datos <span class="step-arrow" aria-hidden="true">→</span></li><li data-step="2"><span class="step-num">2</span> Confirmar</li></ol>
+<p class="notice warn">Atención: confirmar HABILITAR ejecutará cambios: editar el ticket, habilitar y verificar el panel y restaurar MikroTik.</p>
+<label class="field"><span class="field-label">Monto abonado</span><input type="text" name="amount" inputmode="decimal" autocomplete="off" required aria-describedby="enable-amount-hint enable-amount-error"></label>
+<p class="muted" id="enable-amount-hint">Ej.: $12.000 o 12000,50</p>
+<p class="muted" id="enable-amount-error" data-enable-amount-error role="status" aria-live="polite"></p>
+<p data-enable-message role="status" aria-live="polite"></p>
+<footer class="modal-foot"><button class="btn" type="button" data-modal-close>Cancelar</button><button class="btn" type="button" data-enable-preview disabled>Vista previa</button><button class="btn primary" type="button" data-enable-confirm disabled>Confirmar</button></footer>
+<div data-enable-result role="status" aria-live="polite" tabindex="-1"><ol class="flow-steps" data-enable-steps></ol></div>
+<p class="muted">Tras un éxito confirmado se actualizan los datos. Un resultado incierto requiere revisión manual.</p>
+</div></dialog>
+<dialog class="modal ticket-compose" id="new-ticket" aria-labelledby="new-ticket-title"><div class="modal-head"><h2 id="new-ticket-title">Nuevo ticket</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div><div class="modal-body"><form hx-post="/clientes/001009/ticket" hx-target="#ticket-result" hx-swap="innerHTML" hx-disabled-elt="find button">
+<div class="form-grid">
+<label class="field"><span class="field-label">Conexión</span>
+<select name="connection_id" required>
+
+
+<option value="9009" selected>Conexión #9009 · 192.0.2.19</option>
+
+</select></label>
+<label class="field"><span class="field-label">Estado</span><select name="ticket_status_id" required><option value="1" selected>Abierto</option><option value="4" >En curso</option></select></label><label class="field"><span class="field-label">Área</span><select name="ticket_area_id" required><option value="2" selected>Soporte técnico</option><option value="5" >Atención al cliente</option></select></label><label class="field"><span class="field-label">Categoría</span><select name="ticket_category_id" required><option value="25" data-ticket-area="2" selected>BAJA</option><option value="43" data-ticket-area="5" >GESTION COBRANZA</option><option value="38" data-ticket-area="5" >ORDEN DE DESCONEXION</option><option value="12" data-ticket-area="2" >SIN INTERNET</option><option value="39" data-ticket-area="2" >SUSP. SERV.</option></select></label><label class="field"><span class="field-label">Prioridad</span><select name="ticket_priority_id" required><option value="1" selected>Baja</option><option value="3" >Alta</option><option value="2" >Media</option></select></label><label class="field"><span class="field-label">Asignado</span><select name="assigned_user_id"><option value="">Sin asignar</option><option value="None">None</option></select></label></div><label class="field"><span class="field-label">Detalle</span><textarea name="item_content" rows="3" required placeholder="Detalle del reclamo" class="form-textarea"></textarea></label><footer class="modal-foot" data-ticket-compose-foot><button class="btn primary" type="submit">Crear ticket</button></footer></form><div id="ticket-result"></div></div></dialog>
+<dialog class="modal modal-lg" id="ticket-detail" aria-label="Detalle del ticket"><div class="modal-head"><h2>Ticket</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div><div class="modal-body" id="ticket-detail-body"></div></dialog>
+</div>
+
+
+    <footer class="meta" id="meta" >
+  <span>Última actualización: <time datetime="2026-11-16T15:33:25.904025+00:00">16/11/2026 12:33</time></span>
+  
+  
+  
+</footer>
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

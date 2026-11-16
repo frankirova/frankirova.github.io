@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Listas · Suspensiones · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+</head>
+<body class="module-tables-page">
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Suspensiones</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab " href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab active" aria-current="page" href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<section class="card module-page defaulters-page operator-flow module-candidates-page">
+  <div class="card-header"><h1>Listas de suspendidos</h1></div>
+  <div class="card-body">
+    
+
+<div class="operator-tabs" data-operator-tabs>
+  <div class="operator-tablist" role="tablist" aria-label="Cómo armar la lista" hidden>
+    
+    <button class="operator-tab" id="operator-tab-candidates" type="button" role="tab" aria-controls="operator-panel-candidates" data-operator-tab="candidates" aria-selected="true">Armar desde el sistema</button>
+    <button class="operator-tab" id="operator-tab-csv" type="button" role="tab" aria-controls="operator-panel-csv" data-operator-tab="csv" aria-selected="false" tabindex="-1">Cargar CSV</button>
+    
+    <button class="operator-tab" id="operator-tab-history" type="button" role="tab" aria-controls="operator-panel-history" data-operator-tab="history" aria-selected="false" tabindex="-1">Historial (2)</button>
+  </div>
+  
+  <section class="operator-tabpanel" id="operator-panel-candidates" role="tabpanel" aria-labelledby="operator-tab-candidates" data-operator-panel="candidates">
+    
+
+
+
+<section class="module-candidate-selection suspensions-candidates" aria-label="Candidatos guardados" data-filter-memory data-paged-selection-owner="bootstrap:soporte1">
+  
+  
+  <div class="candidate-command-bar">
+    
+    <p class="candidate-selection-summary" data-selection-summary role="status" aria-live="polite">Elegí clientes de la tabla para armar una lista</p>
+    <label class="candidate-command-name" for="selection-name"><span>Nombre</span>
+      <input id="selection-name" type="text" name="name" maxlength="120" required form="candidate-selection" placeholder="Nombre de la lista…"></label>
+    <button class="btn primary" type="submit" form="candidate-selection" title="Crear no ejecuta ni consulta equipos. La revisión de acciones viene después.">Crear con seleccionados</button>
+    
+  </div>
+  
+  
+  
+  <form method="get" role="search" class="operator-status-filter">
+    
+    
+    <input type="hidden" name="page" value="1">
+    
+    <div class="operator-status-group" role="group" aria-labelledby="status-filter-label"><span id="status-filter-label"><strong>Mostrar:</strong></span>
+    
+    <label class="perm-check"><input type="checkbox" name="status" value="enabled" checked>Habilitados</label>
+    
+    <label class="perm-check"><input type="checkbox" name="status" value="blocked" checked>Bloqueados</label>
+    
+    </div>
+    <div class="candidate-page-size"><label for="candidate-page-size">Filas por página</label><input id="candidate-page-size" type="number" name="page_size" min="1" max="1000" step="1" value="50"></div>
+    <div class="module-candidate-filter-actions"><button class="btn" type="submit">Aplicar estados</button>
+    <a class="btn ghost" href="?limpiar=1">Restablecer filtros</a></div>
+  </form>
+  
+  <p class="candidate-criteria">Sin clientes no-service. Orden por saldo, sin umbral de deuda. La inclusión es manual.</p>
+  
+  
+  <form method="post" action="/defaulters/listas/seleccion" data-draft-selection id="candidate-selection" data-demo-blocked title="No disponible en la demo">
+    
+    <div class="table-scroll"><table class="operator-table">
+      <thead><tr><th scope="col">#</th><th scope="col"><label class="operator-pick"><input type="checkbox" data-select-all aria-label="Seleccionar todos los clientes de esta página" title="Seleccionar o desmarcar todos los clientes de esta página"></label></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Código</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Cliente</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Plan</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Código de plan</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Saldo</a></th></tr></thead>
+      <tbody><tr data-code="001024">
+        <td class="mono">1</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5024" aria-label="Incluir 001024"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001024/">001024</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001024/">LÓPEZ OCAMPO</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">32.400</td>
+      </tr><tr data-code="001022">
+        <td class="mono">2</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5022" aria-label="Incluir 001022"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001022/">001022</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001022/">SILVA GALLARDO</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">30.100</td>
+      </tr><tr data-code="001021">
+        <td class="mono">3</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5021" aria-label="Incluir 001021"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001021/">001021</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001021/">GIMÉNEZ PAZ</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">28.950</td>
+      </tr><tr data-code="001020">
+        <td class="mono">4</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5020" aria-label="Incluir 001020"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001020/">001020</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001020/">CLÍNICA DEL SOL S.A.</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">27.800</td>
+      </tr><tr data-code="001018">
+        <td class="mono">5</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5018" aria-label="Incluir 001018"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001018/">001018</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001018/">TORRES QUIROGA</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">25.500</td>
+      </tr><tr data-code="001017">
+        <td class="mono">6</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5017" aria-label="Incluir 001017"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001017/">001017</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001017/">ROMERO BENÍTEZ</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">24.350</td>
+      </tr><tr data-code="001016">
+        <td class="mono">7</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5016" aria-label="Incluir 001016"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001016/">001016</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001016/">FERNÁNDEZ JUÁREZ</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">23.200</td>
+      </tr><tr data-code="001014">
+        <td class="mono">8</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5014" aria-label="Incluir 001014"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001014/">001014</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001014/">ROJAS CUELLO</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">20.900</td>
+      </tr><tr data-code="001013">
+        <td class="mono">9</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5013" aria-label="Incluir 001013"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001013/">001013</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001013/">MEDINA LAFUENTE</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">19.750</td>
+      </tr><tr data-code="001012">
+        <td class="mono">10</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5012" aria-label="Incluir 001012"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001012/">001012</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001012/">ACOSTA SARMIENTO</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">18.600</td>
+      </tr><tr data-code="001010">
+        <td class="mono">11</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5010" aria-label="Incluir 001010"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001010/">001010</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001010/">PANADERÍA LA ESPIGA</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">16.300</td>
+      </tr><tr data-code="001009">
+        <td class="mono">12</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5009" aria-label="Incluir 001009"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001009/">001009</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001009/">LÓPEZ TOLEDO</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">15.150</td>
+      </tr><tr data-code="001008">
+        <td class="mono">13</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5008" aria-label="Incluir 001008"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001008/">001008</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001008/">GÓMEZ ESCOBAR</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">14.000</td>
+      </tr><tr data-code="001006">
+        <td class="mono">14</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5006" aria-label="Incluir 001006"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001006/">001006</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001006/">GIMÉNEZ URQUIZA</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">11.700</td>
+      </tr><tr data-code="001005">
+        <td class="mono">15</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5005" aria-label="Incluir 001005"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001005/">001005</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001005/">COOPERATIVA EL PROGRESO</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">10.550</td>
+      </tr><tr data-code="001004">
+        <td class="mono">16</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5004" aria-label="Incluir 001004"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001004/">001004</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001004/">BENÍTEZ OCAMPO</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">9.400</td>
+      </tr><tr data-code="001002">
+        <td class="mono">17</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5002" aria-label="Incluir 001002"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001002/">001002</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001002/">ROMERO GALLARDO</a></td><td class="mono" data-label="Plan">50 Mbps</td><td class="mono" data-label="Código de plan">PL-50M</td><td class="mono" data-label="Saldo">7.100</td>
+      </tr><tr data-code="001001">
+        <td class="mono">18</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5001" aria-label="Incluir 001001"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001001/">001001</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001001/">FERNÁNDEZ PAZ</a></td><td class="mono" data-label="Plan">30 Mbps</td><td class="mono" data-label="Código de plan">PL-30M</td><td class="mono" data-label="Saldo">5.950</td>
+      </tr><tr data-code="001000">
+        <td class="mono">19</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5000" aria-label="Incluir 001000"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001000/">001000</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001000/">ESTUDIO CONTABLE ANDES S.R.L.</a></td><td class="mono" data-label="Plan">10 Mbps</td><td class="mono" data-label="Código de plan">PL-10M</td><td class="mono" data-label="Saldo">4.800</td>
+      </tr><tr data-code="001003">
+        <td class="mono">20</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5003" aria-label="Incluir 001003"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001003/">001003</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001003/">TORRES VARGAS</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr><tr data-code="001007">
+        <td class="mono">21</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5007" aria-label="Incluir 001007"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001007/">001007</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001007/">SILVA NAVARRO</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr><tr data-code="001011">
+        <td class="mono">22</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5011" aria-label="Incluir 001011"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001011/">001011</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001011/">RAMÍREZ DUARTE</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr><tr data-code="001015">
+        <td class="mono">23</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5015" aria-label="Incluir 001015"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001015/">001015</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001015/">TALLER RODRÍGUEZ S.R.L.</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr><tr data-code="001019">
+        <td class="mono">24</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5019" aria-label="Incluir 001019"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001019/">001019</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001019/">BENÍTEZ IBÁÑEZ</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr><tr data-code="001023">
+        <td class="mono">25</td>
+        <td><label class="operator-pick"><input type="checkbox" name="selected" value="5023" aria-label="Incluir 001023"><span class="sr-only">Incluir</span></label></td>
+        <td data-label="Código"><a class="customer-link" href="/rm-tools/clientes/001023/">001023</a></td><td data-label="Cliente"><a class="customer-link" href="/rm-tools/clientes/001023/">MARTÍNEZ VARGAS</a></td><td class="mono" data-label="Plan">PYME PLUS 2</td><td class="mono" data-label="Código de plan">PL-PYME</td><td class="mono" data-label="Saldo">0</td>
+      </tr></tbody>
+    </table></div>
+    
+<div class="candidate-results-footer">
+  <p class="muted" role="status">Mostrando 25 de 25 clientes.</p>
+  <nav class="listing-pagination" aria-label="Páginas de candidatos">
+    
+    <span>Página 1 de 1</span>
+    
+  </nav>
+</div>
+
+    
+  </form>
+  
+</section>
+<script src="/rm-tools/static/operator-drafts.js" defer></script>
+  </section>
+  <section class="operator-tabpanel" id="operator-panel-csv" role="tabpanel" aria-labelledby="operator-tab-csv" data-operator-panel="csv">
+    <div class="module-inputs">
+      <form class="admin-form module-input" method="post" action="/defaulters/listas/csv" enctype="multipart/form-data" data-demo-blocked title="No disponible en la demo">
+        <h2 class="section-title">Importar CSV</h2>
+        <div class="field"><label class="field-label" for="list-csv">CSV de clientes (UTF-8, hasta 2 MiB)</label>
+          <input id="list-csv" type="file" name="file" accept=".csv,text/csv" aria-describedby="list-csv-help" required></div>
+        <p class="muted module-help" id="list-csv-help">Columnas: código, nombre e IP opcional. Se permiten coma, punto y coma o tabulador.</p>
+        <button class="btn primary" type="submit">Cargar y revisar</button>
+      </form>
+      <form class="admin-form module-input" method="post" action="/defaulters/listas" data-demo-blocked title="No disponible en la demo">
+        <h2 class="section-title">Crear lista vacía</h2>
+        <div class="field"><label class="field-label" for="list-name">Nueva lista</label>
+          <input id="list-name" type="text" name="name" maxlength="120" required></div>
+        <p class="muted module-help">Agregá clientes desde la página Clientes.</p>
+        <button class="btn" type="submit">Crear lista vacía</button>
+      </form>
+    </div>
+  </section>
+  
+  <section class="operator-tabpanel module-saved-lists" id="operator-panel-history" role="tabpanel" aria-labelledby="operator-tab-history" data-operator-panel="history">
+    
+    <div class="table-scroll"><table>
+      <thead><tr><th scope="col">#</th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Lista</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Estado</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Clientes</a></th><th scope="col" aria-sort="none"><a href="/rm-tools/defaulters/listas/">Creada por</a></th></tr></thead>
+      <tbody><tr>
+        <td class="mono">1</td>
+        <td class="module-name"><a href="/rm-tools/no-disponible/">morosos_2026-10-31.csv</a></td>
+        <td><span class="chip">Cancelada</span></td><td class="mono">6</td><td>soporte1</td>
+      </tr><tr>
+        <td class="mono">2</td>
+        <td class="module-name"><a href="/rm-tools/no-disponible/">morosos_2026-11-14.csv</a></td>
+        <td><span class="chip">Pendiente de preparación</span></td><td class="mono">8</td><td>soporte1</td>
+      </tr></tbody>
+    </table></div>
+    
+  </section>
+</div>
+<script src="/rm-tools/static/operator-tabs.js" defer></script>
+  </div>
+</section>
+
+
+    
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

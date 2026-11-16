@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Bajas · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+</head>
+<body class="bajas-list-page">
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Bajas</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab " href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab active" aria-current="page" href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<section class="module-page bajas-page">
+  <h1 class="bajas-title">Bajas</h1>
+  <div class="card-body">
+    <div class="operator-tabs" data-operator-tabs>
+    <div class="bajas-tabs-head">
+      <div class="operator-tablist" role="tablist" aria-label="Bajas" hidden>
+        <button class="operator-tab" id="operator-tab-tickets" type="button" role="tab" aria-controls="operator-panel-tickets" data-operator-tab="tickets" aria-selected="true">Tickets de baja</button>
+        <button class="operator-tab" id="operator-tab-history" type="button" role="tab" aria-controls="operator-panel-history" data-operator-tab="history" aria-selected="false" tabindex="-1">Historial (1)</button>
+      </div>
+    </div>
+    <section class="operator-tabpanel" id="operator-panel-tickets" role="tabpanel" aria-labelledby="operator-tab-tickets" data-operator-panel="tickets">
+    <div class="toolbar bajas-command-bar">
+      <div class="module-meta"><span>Tickets de baja abiertos: <strong class="mono">5</strong></span></div>
+      <div data-draft-create>
+        <p class="bajas-selection" data-selection-summary role="status" aria-live="polite">Elegí tickets para armar una lista</p>
+        <label class="sr-only" for="draft-name">Nombre de la lista</label><input id="draft-name" type="text" maxlength="100" required placeholder="Nombre de la lista">
+        <button type="button" class="btn primary" id="draft-create" disabled>Crear lista seleccionada</button>
+        <p id="draft-create-error" role="alert"></p>
+      </div>
+    </div>
+    <p class="muted">Comentario en caché: último del orden recibido. No se garantiza que sea el más reciente. Revisá el detalle antes de decidir si la baja fue cancelada.</p>
+    <script src="/rm-tools/static/list-run.js" defer></script>
+    <script src="/rm-tools/static/baja-drafts.js" defer></script>
+    
+    
+    
+    <form id="bajas-form" class="admin-form">
+    <div class="table-scroll"><table>
+      <colgroup><col class="baja-col-number"><col class="baja-col-select"><col class="baja-col-ticket"><col class="baja-col-date"><col class="baja-col-code"><col><col class="baja-col-balance"><col class="baja-col-assigned"><col class="baja-col-comment"></colgroup>
+      <thead><tr>
+        <th scope="col">#</th>
+        <th><input type="checkbox" id="bajas-all" aria-label="Seleccionar todas"></th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Ticket</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Creado</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Código</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Cliente</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Saldo</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Asignado</a>
+        </th>
+        
+        <th>
+          <a href="/rm-tools/bajas/">Comentario en caché</a>
+        </th>
+        
+        
+      </tr></thead>
+      <tbody><tr data-baja-row="8822" data-draft-ticket="8822">
+        <td class="mono">1</td>
+        <td><input type="checkbox" name="tickets" value="8822" data-balance="30100.00" aria-label="Seleccionar ticket 8822"></td>
+        <td class="mono"><a href="/rm-tools/no-disponible/">8822</a></td>
+        <td class="mono">26/10/2026</td>
+        <td class="mono"><a href="/rm-tools/clientes/001022/">001022</a></td>
+        <td class="module-name">SILVA GALLARDO</td>
+        <td class="mono">30.100</td>
+        <td>—</td>
+        <td data-baja-comment>Sin comentario disponible en caché</td>
+        
+      </tr><tr data-baja-row="8802" data-draft-ticket="8802">
+        <td class="mono">2</td>
+        <td><input type="checkbox" name="tickets" value="8802" data-balance="7100.00" aria-label="Seleccionar ticket 8802"></td>
+        <td class="mono"><a href="/rm-tools/no-disponible/">8802</a></td>
+        <td class="mono">27/10/2026</td>
+        <td class="mono"><a href="/rm-tools/clientes/001002/">001002</a></td>
+        <td class="module-name">ROMERO GALLARDO</td>
+        <td class="mono">7.100</td>
+        <td>—</td>
+        <td data-baja-comment>Sin comentario disponible en caché</td>
+        
+      </tr><tr data-baja-row="8807" data-draft-ticket="8807">
+        <td class="mono">3</td>
+        <td><input type="checkbox" name="tickets" value="8807" data-balance="0.00" aria-label="Seleccionar ticket 8807"></td>
+        <td class="mono"><a href="/rm-tools/no-disponible/">8807</a></td>
+        <td class="mono">01/11/2026</td>
+        <td class="mono"><a href="/rm-tools/clientes/001007/">001007</a></td>
+        <td class="module-name">SILVA NAVARRO</td>
+        <td class="mono">0</td>
+        <td>—</td>
+        <td data-baja-comment>Sin comentario disponible en caché</td>
+        
+      </tr><tr data-baja-row="8812" data-draft-ticket="8812">
+        <td class="mono">4</td>
+        <td><input type="checkbox" name="tickets" value="8812" data-balance="18600.00" aria-label="Seleccionar ticket 8812"></td>
+        <td class="mono"><a href="/rm-tools/no-disponible/">8812</a></td>
+        <td class="mono">06/11/2026</td>
+        <td class="mono"><a href="/rm-tools/clientes/001012/">001012</a></td>
+        <td class="module-name">ACOSTA SARMIENTO</td>
+        <td class="mono">18.600</td>
+        <td>—</td>
+        <td data-baja-comment>Sin comentario disponible en caché</td>
+        
+      </tr><tr data-baja-row="8817" data-draft-ticket="8817">
+        <td class="mono">5</td>
+        <td><input type="checkbox" name="tickets" value="8817" data-balance="24350.00" aria-label="Seleccionar ticket 8817"></td>
+        <td class="mono"><a href="/rm-tools/no-disponible/">8817</a></td>
+        <td class="mono">11/11/2026</td>
+        <td class="mono"><a href="/rm-tools/clientes/001017/">001017</a></td>
+        <td class="module-name">ROMERO BENÍTEZ</td>
+        <td class="mono">24.350</td>
+        <td>—</td>
+        <td data-baja-comment>Sin comentario disponible en caché</td>
+        
+      </tr></tbody>
+    </table></div>
+    <nav class="listing-pagination" aria-label="Páginas de bajas"> </nav>
+    <p id="bajas-error" class="is-err" role="alert"></p>
+    </form>
+    
+    </section>
+    <section class="operator-tabpanel module-saved-lists" id="operator-panel-history" role="tabpanel" aria-labelledby="operator-tab-history" data-operator-panel="history">
+      <div class="table-scroll"><table>
+        <thead><tr>
+          <th scope="col">#</th>
+          
+          <th>
+            <a href="/rm-tools/bajas/">Lista</a>
+          </th>
+          
+          <th>
+            <a href="/rm-tools/bajas/">Estado</a>
+          </th>
+          
+          <th>
+            <a href="/rm-tools/bajas/">Tickets</a>
+          </th>
+          
+          <th>
+            <a href="/rm-tools/bajas/">Creada por</a>
+          </th>
+          
+        </tr></thead>
+        <tbody><tr>
+          <td class="mono">1</td>
+          <td class="module-name"><a href="/rm-tools/no-disponible/">Bajas noviembre 2026</a></td>
+          <td><span class="chip" data-list-state="pending">Pendiente</span></td>
+          <td class="mono">7</td>
+          <td>soporte1</td>
+        </tr></tbody>
+      </table></div>
+    </section>
+    </div>
+    <script src="/rm-tools/static/operator-tabs.js" defer></script>
+  </div>
+</section>
+
+
+    
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

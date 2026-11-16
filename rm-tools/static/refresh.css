@@ -1,0 +1,968 @@
+/* rm-tools — visual refresh proposal.
+   Loaded after styles.css and unlayered on purpose: part of styles.css sits
+   outside its cascade layers, and unlayered rules beat every layer, so a
+   layer here would lose to them. Equal specificity resolves by load order.
+   It restyles existing classes only; no template structure changes. Remove
+   this file's <link> in base.html to return to the previous look.
+
+   Direction: an operator console where misreading a code, an IP or an amount
+   is the costly mistake. So the type does the work: Atkinson Hyperlegible
+   (Braille Institute, OFL) separates 0/O and 1/l/I by design. Green stays as
+   the NetMap identity but is reserved for actions and healthy state; data and
+   links read in ink. Labels are sentence case, never tracked capitals. The one
+   loud element is the customer's administrative state. */
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/rm-tools/static/fonts/atkinson-next-latin.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Mono";
+  src: url("/rm-tools/static/fonts/atkinson-mono-latin.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
+/* Dark: neutral graphite instead of blue-black, so the green state colour is
+   the only saturated hue on screen. Light: a cool paper grey, white panels. */
+:root,
+.client-detail:where(html:not([data-theme="light"]) *) {
+  --bg: #141618;
+  --panel: #1a1d20;
+  --panel-2: #212528;
+  --panel-3: #2a2f33;
+  --border: rgba(226, 232, 236, .13);
+  --border-soft: rgba(226, 232, 236, .07);
+  --border-strong: rgba(226, 232, 236, .24);
+  --text: #e7eae9;
+  --muted: #9aa1a4;
+  --accent: #2bb086;
+  --accent-2: #17805f;
+  --accent-2-hover: #1c916c;
+  --ok: #62d0a9;
+  --warn: #f2c06e;
+  --err: #f39a94;
+  --blue: #8fbbe6;
+  --ink-link: var(--text);
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  --shadow: none;
+  --shadow-lift: 0 12px 32px rgba(0, 0, 0, .4);
+  --shadow-header: none;
+}
+/* Type tokens are theme-independent; the customer card re-declares them in
+   `pages`, so it is named here as well. */
+:root, .client-detail {
+  --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-data: "Atkinson Hyperlegible Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+html[data-theme="light"] {
+  --bg: #eef0f1;
+  --panel: #ffffff;
+  --panel-2: #f4f6f6;
+  --panel-3: #e7ebec;
+  --border: rgba(20, 32, 40, .14);
+  --border-soft: rgba(20, 32, 40, .075);
+  --border-strong: rgba(20, 32, 40, .28);
+  --text: #182227;
+  --muted: #56636a;
+  --accent: #0a7a57;
+  --accent-2: #0a7a57;
+  --accent-2-hover: #086748;
+  --ok: #0a7a57;
+  --warn: #8a5300;
+  --err: #b42f37;
+  --blue: #255f9a;
+  --shadow-lift: 0 12px 32px rgba(20, 32, 40, .14);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+/* Body stays at the dense 13px scale: Atkinson's large x-height already reads
+   bigger than the old system face, and the list tables are sized for it. */
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3 { letter-spacing: -.01em; }
+main > h1, .page-title { font-size: var(--fs-2xl); font-weight: 700; margin: var(--sp-3) 0 var(--sp-4); }
+
+/* Codes and ids in tables stay green: they are what the eye scans for and
+   clicks. A quiet underline appears on hover/focus. */
+td a, .search-row-link {
+  color: var(--accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+td a { white-space: nowrap; }
+td a:hover, td a:focus-visible, .search-row-link:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+th, td { border-bottom-color: var(--border-soft); }
+th {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+td { padding-top: .5625rem; padding-bottom: .5625rem; }
+/* The Bajas "Asignado" column was too narrow for its own header. */
+.bajas-list-page .baja-col-assigned { width: 6rem; }
+/* Bajas command bar: the count on the left, and on the right the one thing the page is for. The list
+   group stays quiet until a ticket is chosen, then it takes a surface and the accent: the bar itself
+   tells you what you are about to create. */
+.bajas-list-page .bajas-command-bar { flex-wrap: nowrap; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+.bajas-list-page [data-draft-create] {
+  position: relative; flex: 0 1 auto; flex-wrap: nowrap; margin-left: auto; padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
+  border: 1px solid transparent; border-radius: var(--r-md);
+  transition: background-color .15s, border-color .15s;
+}
+.bajas-list-page [data-draft-create][data-active="true"] {
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.bajas-list-page .bajas-selection { margin: 0; font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; }
+.bajas-list-page [data-draft-create][data-active="true"] .bajas-selection { color: var(--text); font-weight: 600; }
+.bajas-list-page #draft-name { flex: 0 1 15rem; width: 15rem; }
+.bajas-list-page [data-draft-create]:not([data-active="true"]) :is(#draft-name, #draft-create) { opacity: .55; }
+.bajas-list-page #draft-create-error { position: absolute; inset-inline: 0; margin-top: calc(100% + var(--sp-1)); }
+.bajas-list-page .bajas-command-bar + p.muted { margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+@media (max-width: 900px) {
+  .bajas-list-page .bajas-command-bar { flex-wrap: wrap; }
+  .bajas-list-page [data-draft-create] { flex-wrap: wrap; flex-basis: 100%; padding: var(--sp-2); }
+  .bajas-list-page #draft-name { flex: 1 1 12rem; }
+}
+/* Row numbers are an index, not data. */
+tbody td:first-child { color: var(--muted); }
+
+/* ── Labels: sentence case everywhere ───────────────────────────────────── */
+.rail-head,
+.stat-label,
+.field-label,
+.list-stat-label,
+.link-quality,
+.enterprises-grid thead th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-ui);
+}
+.rail-head { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+/* "LOCAL" / "REMOTO" arrive in capitals from the template: set them as words. */
+.link-card-title { display: inline-block; text-transform: lowercase; letter-spacing: 0; font: 600 var(--fs-md) var(--font-ui); color: var(--text); }
+.link-card-title::first-letter { text-transform: uppercase; }
+.stat-label, .field-label { font-size: var(--fs-sm); font-weight: 500; }
+
+/* ── Shell ──────────────────────────────────────────────────────────────── */
+.client-shell { background: var(--panel); border-bottom-color: var(--border); }
+.client-logo, .client-logo:hover { text-decoration: none; }
+.client-shell .client-logo { font-size: 1.0625rem; font-weight: 700; letter-spacing: -.01em; }
+/* The brand mark is a small signal glyph: three rising bars in the accent. */
+.client-shell .client-logo::before {
+  width: .875rem; height: .75rem; border-radius: 0; box-shadow: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 100% / 3px 40% no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 50% 100% / 3px 70% no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 3px 100% no-repeat;
+}
+.open-clients-rail { background: var(--panel); }
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+.btn { font-size: var(--fs-md); font-weight: 600; border-radius: var(--r-md); background: var(--panel); border-color: var(--border); }
+.btn:hover { border-color: var(--border-strong); background: var(--panel-2); }
+.btn.primary { background: var(--accent-2); color: #fff; }
+.btn.primary:hover { background: var(--accent-2-hover); }
+input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea {
+  font-family: var(--font-ui);
+  border-radius: var(--r-md);
+}
+input:not([type="checkbox"], [type="radio"]):focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+/* ══ Components ═══════════════════════════════════════════════════════════ */
+
+/* ── Filter bar (Tickets, Clientes) ─────────────────────────────────────── */
+/* One surface holds the whole query: search first and widest, then the
+   filters as quiet controls. A filter that is not at its default lights up in
+   the accent, so the operator sees at a glance why the list is shorter. */
+.tickets-page form.toolbar,
+.customers-page .module-filter-form {
+  padding: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  align-items: center;
+}
+:is(.tickets-page form.toolbar, .customers-page .module-filter-form)
+  :is(input:not([type="checkbox"], [type="radio"]), select, .customer-status-filter > summary) {
+  min-height: 2.25rem;
+  background-color: var(--panel-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: var(--fs-md);
+}
+:is(.tickets-page form.toolbar, .customers-page .module-filter-form)
+  :is(input:not([type="checkbox"], [type="radio"]), select, .customer-status-filter > summary):hover {
+  border-color: var(--border-strong);
+}
+/* The search field carries its magnifier, drawn in CSS so no markup changes. */
+.tickets-page form.toolbar > input[type="search"],
+.customers-page #client-query {
+  padding-left: 2.125rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23919a9e' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: .75rem 50%;
+}
+/* Active filter: a select whose chosen option is not the first ("todos"), or
+   a status filter with something checked. */
+:is(.tickets-page form.toolbar, .customers-page .module-filter-form) select:has(option:checked:not(:first-child)),
+.customers-page .customer-status-filter:has(input:checked) > summary {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 10%, var(--panel-2));
+  font-weight: 600;
+}
+/* Rows per page is a display preference, not a filter: set it small and grey. */
+.tickets-page .tickets-page-size,
+.customers-page .page-size-field { color: var(--muted); font-size: var(--fs-sm); }
+.tickets-page .tickets-page-size input,
+.customers-page #page-size { width: 4rem; text-align: right; }
+/* Everything fits one row on a laptop: the selects give up width before the
+   actions wrap to a line of their own. */
+.tickets-page form.toolbar > input[type="search"] { flex: 2 1 11rem; min-width: 10rem; }
+.customers-page .module-filter-form > .field:first-child { flex: 2 1 11rem; min-width: 10rem; }
+/* A filter must still read its value ("Estado: Habilitado"): below this
+   width the row wraps instead of clipping the words. */
+.tickets-page form.toolbar > select,
+.customers-page .customer-primary-filters > .field { flex: 1 1 8.5rem; width: auto; min-width: 8.5rem; }
+.customers-page .customer-primary-filters > .field:has(.customer-status-filter) { min-width: 10.5rem; }
+.tickets-page .tickets-filter-actions,
+.customers-page .module-filter-actions { flex: none; }
+.customers-page .module-filter-advanced { margin-top: 0; }
+/* Actions close the bar; clearing is a plain text action, not a second button. */
+.tickets-page .tickets-filter-actions { margin-left: auto; }
+:is(.tickets-page form.toolbar, .customers-page .module-filter-form) .btn.ghost,
+.customers-page .module-filter-actions .btn:not(.primary) {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+:is(.tickets-page form.toolbar, .customers-page .module-filter-form) .btn.ghost:hover,
+.customers-page .module-filter-actions .btn:not(.primary):hover { color: var(--text); background: var(--panel-2); }
+.customers-page .module-filter-advanced:not([open]) > summary {
+  border-style: solid; border-color: transparent; color: var(--muted); min-height: 2.25rem;
+}
+
+/* ── Status in tables: a dot and a word, not a filled box ───────────────── */
+/* Dense tables repeated a coloured box on every row; the colour now sits in a
+   small dot and the word stays in ink, so the column reads as data. Neutral
+   values get a hollow dot. */
+td .chip {
+  gap: .4375rem;
+  padding: 0;
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
+td .chip::before {
+  content: "";
+  width: .5rem; height: .5rem; flex: none;
+  border-radius: 50%;
+  background: var(--badge-color);
+}
+td .chip.info { --badge-color: var(--accent); }
+td .chip:not(.ok, .warn, .err, .info)::before { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+td .chip:not(.ok, .warn, .err, .info) { color: var(--muted); }
+
+/* ── Segmented filters (Interesados) ────────────────────────────────────── */
+nav.chips[aria-label="Filtrar por estado"] {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: var(--panel-2); border-radius: var(--r-md);
+}
+nav.chips[aria-label="Filtrar por estado"] .chip {
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: calc(var(--r-md) - 2px);
+  background: none; color: var(--muted); font-size: var(--fs-md); font-weight: 500;
+  text-decoration: none;
+}
+nav.chips[aria-label="Filtrar por estado"] .chip:hover { color: var(--text); }
+nav.chips[aria-label="Filtrar por estado"] .chip[aria-current="page"] {
+  background: var(--panel); color: var(--text); font-weight: 600;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+/* Head: title, one line about sync, the refresh action. The long caveats
+   moved into tooltips; nothing an operator needs every time. */
+.panel-head { display: flex; align-items: center; gap: var(--sp-3) var(--sp-4); flex-wrap: wrap; margin: var(--sp-3) 0 var(--sp-4); }
+.panel-head .page-title { margin: 0 auto 0 0; }
+.panel-head .muted { font-size: var(--fs-sm); }
+
+/* Ticket table on the left, the live context (network, freshness, incidents)
+   on the right. The refreshed fragment is display: contents so its children
+   join the same grid as the incidents card. */
+.panel-layout {
+  display: grid; gap: var(--sp-4); align-items: start; margin-bottom: var(--sp-4);
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  grid-template-areas: "main side" "incidents side";
+  grid-template-rows: auto 1fr;
+}
+.panel-layout > #panel-chill { display: contents; }
+.panel-layout .panel-main { grid-area: main; min-width: 0; }
+.panel-layout .panel-side { grid-area: side; display: grid; gap: var(--sp-4); min-width: 0; }
+.panel-layout > #incident-active { grid-area: incidents; align-self: stretch; }
+@media (max-width: 64rem) {
+  .panel-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "side" "incidents"; }
+}
+.panel-layout .card-header h2,
+.panel-layout #network-live > h2,
+.panel-layout #incident-active > h2 { margin: 0; font-size: var(--fs-lg); font-weight: 700; }
+.panel-layout .card-header > .muted { font-size: var(--fs-sm); font-weight: 400; }
+.panel-note { margin: 0; padding: var(--sp-3) var(--sp-4); font-size: var(--fs-sm); }
+.panel-layout .notice { margin: var(--sp-3) var(--sp-4) 0; }
+
+/* Ticket groups: one row per group, figures right-aligned in tabular digits. */
+.panel-groups { margin: 0; }
+.panel-groups :is(th, td) { padding: var(--sp-3) var(--sp-4); vertical-align: top; }
+.panel-groups thead th { background: none; }
+.panel-groups tbody th { background: none; border-bottom-color: var(--border-soft); font-weight: 600; color: var(--text); font-size: var(--fs-md); white-space: nowrap; }
+.panel-groups .num { text-align: right; font-variant-numeric: tabular-nums; }
+.panel-groups td.figure { font: 700 var(--fs-xl)/1 var(--font-ui); letter-spacing: -.01em; }
+.panel-groups td.muted, .panel-groups td.figure.muted { font: 400 var(--fs-sm) var(--font-ui); color: var(--muted); }
+.panel-groups td:nth-child(4), .panel-groups td:nth-child(5) { font-size: var(--fs-lg); font-weight: 600; }
+.panel-groups tbody tr:last-child :is(th, td) { border-bottom: 0; }
+.panel-groups tbody tr:hover { background: none; }
+.panel-oldest > summary { cursor: pointer; list-style: none; white-space: nowrap; }
+.panel-oldest > summary::-webkit-details-marker { display: none; }
+.panel-oldest > summary::after { content: " ▾"; color: var(--muted); font-size: var(--fs-xs); }
+.panel-oldest[open] > summary::after { content: " ▴"; }
+.panel-oldest > summary strong { font-weight: 600; }
+.panel-oldest > summary .muted { font-size: var(--fs-sm); margin-left: var(--sp-1); }
+.panel-oldest > ol { margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
+.panel-oldest > ol > li {
+  display: flex; justify-content: space-between; gap: var(--sp-4);
+  padding: .25rem 0; border-top: 1px solid var(--border-soft);
+  font-family: var(--font-data); font-size: var(--fs-sm); color: var(--muted);
+}
+
+/* Side cards: network, freshness and incidents share one anatomy: a header
+   with a hairline (like .card-header), then a padded body. */
+.panel-layout #network-live, .panel-layout #incident-active {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden; min-width: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.5;
+}
+.panel-layout #network-live > h2, .panel-layout #incident-active > h2 {
+  margin: 0 0 var(--sp-3); padding: var(--sp-4); border-bottom: 1px solid var(--border-soft); color: var(--text);
+}
+.panel-layout #network-live > :not(h2), .panel-layout #incident-active > :not(h2) {
+  margin: 0 var(--sp-4) var(--sp-3);
+}
+.panel-layout #network-live > :last-child, .panel-layout #incident-active > :last-child { margin-bottom: var(--sp-4); }
+.panel-layout #network-live form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-1) var(--sp-2); align-items: center; }
+.panel-layout #network-live form label { grid-column: 1 / -1; color: var(--text); font-weight: 500; }
+.panel-layout #network-live form input { min-width: 0; }
+.panel-layout #network-live ul, .panel-layout #incident-active ul { padding: 0; list-style: none; display: grid; gap: var(--sp-2); }
+.panel-layout #network-live li, .panel-layout #incident-active li {
+  padding: var(--sp-2) var(--sp-3); background: var(--panel-2); border-radius: var(--r-md); color: var(--text);
+}
+.panel-layout #network-live li:only-child:not(:has(.chip)) { background: none; padding: 0; color: var(--muted); }
+.panel-layout #network-live > p.chip { display: block; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); line-height: 1.45; }
+.panel-caveat { padding-top: var(--sp-3); border-top: 1px solid var(--border-soft); font-size: var(--fs-xs); }
+.panel-caveat > summary { cursor: pointer; color: var(--muted); list-style: none; }
+.panel-caveat > summary::before { content: "ⓘ "; }
+.panel-caveat > summary:hover { color: var(--text); }
+.panel-caveat > p { margin: var(--sp-2) 0 0; }
+.panel-freshness ul { margin: 0; padding: 0 var(--sp-4); list-style: none; }
+.panel-freshness li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: 1px solid var(--border-soft); font-size: var(--fs-sm); }
+.panel-freshness li:last-child { border-bottom: 0; }
+.panel-freshness .fresh-label { color: var(--text); font-weight: 500; }
+.panel-freshness .fresh-age { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--muted); text-align: right; flex-wrap: wrap; justify-content: flex-end; }
+.panel-freshness li .chip { padding: 0 var(--sp-2); font-size: var(--fs-xs); }
+.panel-freshness .panel-note { padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-soft); font-size: var(--fs-xs); }
+
+/* ══ Dialogs, notices, toasts ═════════════════════════════════════════════ */
+
+/* A dialog is a task: a title, the fields, one obvious action. The surface
+   lifts off the page with a shadow instead of a second border colour. */
+.modal {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lift);
+}
+.modal::backdrop { backdrop-filter: blur(2px); }
+.modal-head { padding: var(--sp-3) var(--sp-4); }
+.modal-head h2 { font-size: var(--fs-lg); font-weight: 650; letter-spacing: -.005em; }
+/* Closing is the quiet exit: no filled box until it is hovered or focused. */
+.modal-head .btn-icon-sm { background: none; border-color: transparent; color: var(--muted); }
+.modal-head .btn-icon-sm:hover { color: var(--text); background: var(--panel-2); border-color: var(--border); }
+#ticket-result:empty, [data-cancellation-result]:empty { display: none; }
+
+/* Fields inside a dialog stack with a steady rhythm: the label belongs to the
+   control below it, and each field is clearly apart from the next. */
+.modal-body .field { gap: var(--sp-1); margin: 0 0 var(--sp-3); }
+.modal-body .field-label { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
+.modal-body .form-grid .field { margin: 0; }
+.modal-body .form-textarea { margin: 0; }
+.modal-body .muted { font-size: var(--fs-sm); }
+
+/* New ticket: five selects in one row truncated their own values
+   ("ADMINISTR", "GESTION C"). Two columns keep every option readable. */
+.ticket-compose .form-grid,
+.client-detail .ticket-compose .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ticket-compose .form-grid .field:first-child { grid-column: 1 / -1; }
+.ticket-compose select { text-overflow: ellipsis; }
+@media (max-width: 30rem) {
+  .ticket-compose .form-grid,
+  .client-detail .ticket-compose .form-grid { grid-template-columns: 1fr; }
+}
+
+/* Two-step flows (baja, reconnect, enable): a real progress marker, not a
+   caption. The current step is a filled number; the next one waits muted. */
+.step-indicator { gap: var(--sp-4); margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+.step-indicator li { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.step-indicator .step-num {
+  display: inline-grid; place-items: center; width: 1.375rem; height: 1.375rem; margin: 0;
+  border: 1px solid var(--border-strong); border-radius: 50%;
+  font: 600 var(--fs-xs)/1 var(--font-ui); font-variant-numeric: tabular-nums;
+}
+.step-indicator li[aria-current="step"] .step-num { background: var(--accent-2); border-color: transparent; color: #fff; }
+.step-indicator .step-arrow { display: none; }
+.step-indicator li + li::before { content: ""; width: 1.5rem; height: 1px; margin-right: var(--sp-2); background: var(--border-strong); }
+
+/* Review block of the baja flow: term above, value below. */
+.cancellation-preview { padding: var(--sp-3); margin: 0 0 var(--sp-3); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--panel-2); gap: 0; }
+.cancellation-preview dt { margin-top: var(--sp-2); font-size: var(--fs-sm); font-weight: 500; color: var(--muted); }
+.cancellation-preview dt:first-child { margin-top: 0; }
+.cancellation-preview dd { color: var(--text); }
+
+/* Actions at the foot read in order: leave, check, commit. The check is the
+   next step, so it takes the primary weight until the danger action opens. */
+.customer-cancellation [data-cancellation-preview]:not(:disabled) { background: var(--accent-2); border-color: transparent; color: #fff; }
+.customer-cancellation [data-cancellation-preview]:not(:disabled):hover { background: var(--accent-2-hover); }
+
+/* Notices: the colour marks the kind (info, warning, error, ok) on a tinted
+   surface, so a notice inside a dialog cannot be mistaken for a field. */
+.notice, .banner {
+  border-left-width: 3px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+.notice.warn { background: color-mix(in srgb, var(--warn) 9%, var(--panel)); }
+.notice.ok   { background: color-mix(in srgb, var(--ok) 9%, var(--panel)); }
+.notice.err  { background: color-mix(in srgb, var(--err) 10%, var(--panel)); }
+.notice.muted { background: var(--panel-2); }
+.modal-body .notice { margin: 0 0 var(--sp-3); font-size: var(--fs-md); line-height: 1.45; }
+
+/* Toast: confirms the action that just happened, bottom centre, readable at
+   arm's length. Colour sits in a dot so the text stays in ink. */
+.status-toast {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) var(--sp-3);
+  font-size: var(--fs-md); font-weight: 500; color: var(--text);
+  background: var(--panel-3); border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  box-shadow: var(--shadow-lift);
+}
+.status-toast::before { content: ""; flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: var(--ok); }
+.status-toast.is-error { color: var(--text); border-color: color-mix(in srgb, var(--err) 55%, var(--border-strong)); }
+.status-toast.is-error::before { background: var(--err); }
+@media (prefers-reduced-motion: reduce) { .status-toast, .modal[open] { transition: none; animation: none; } }
+
+/* ══ Empresas (enterprise sheets) ═════════════════════════════════════════ */
+/* The page is a workbook browser: pick a sheet, find a row, edit a cell.
+   enterprises.css loads after this file, so these selectors outrank it by
+   specificity rather than by order. */
+.enterprise-table-page .enterprises-heading { align-items: center; justify-content: flex-start; gap: var(--sp-2) var(--sp-4); margin-block: 0 var(--sp-3); }
+.enterprise-table-page .enterprises h1 { font-size: var(--fs-xl); font-weight: 700; margin: 0; }
+/* The credentials warning stays visible but stops shouting: one muted line. */
+.enterprise-table-page .enterprises [role="note"] {
+  flex: 1 1 24rem; padding: 0; border: 0; background: none; border-radius: 0;
+  font-size: var(--fs-sm); color: var(--muted);
+}
+
+/* Sheets: one picker instead of a row of tabs that never fits. The current
+   sheet is the summary; opening it lists every sheet in columns. */
+.enterprise-table-page .enterprises-layout, .enterprise-table-page .enterprises-main { display: block; min-width: 0; }
+.enterprise-table-page .enterprises-sheets { position: relative; margin: 0; }
+.enterprise-table-page .enterprises-sheets > summary {
+  display: inline-flex; align-items: baseline; gap: var(--sp-2); max-width: 100%; padding: var(--sp-2) var(--sp-3);
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer; list-style: none; font-size: var(--fs-md);
+}
+.enterprise-table-page .enterprises-sheets > summary::-webkit-details-marker { display: none; }
+.enterprise-table-page .enterprises-sheets > summary::after { content: "▾"; color: var(--muted); font-size: var(--fs-xs); }
+.enterprise-table-page .enterprises-sheets[open] > summary::after { content: "▴"; }
+.enterprise-table-page .enterprises-sheets > summary:hover { border-color: var(--border-strong); }
+.enterprise-table-page .enterprises-sheets-label, .enterprise-table-page .enterprises-sheets-count { color: var(--muted); font-size: var(--fs-sm); }
+.enterprise-table-page .enterprises-sheets strong { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.enterprise-table-page .enterprises-tabs {
+  position: absolute; z-index: 20; top: calc(100% + var(--sp-1)); left: 0; width: min(46rem, calc(100vw - 2rem));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1px; margin: 0; padding: var(--sp-2); overflow: visible;
+  background: var(--panel); border: 1px solid var(--border-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-lift);
+}
+.enterprise-table-page .enterprises-tabs a {
+  padding: var(--sp-2) var(--sp-3); margin: 0; border: 0; border-radius: var(--r-md);
+  color: var(--text); font-size: var(--fs-md); font-weight: 500; text-transform: none; white-space: normal; line-height: 1.3;
+}
+.enterprise-table-page .enterprises-tabs a:hover { background: var(--panel-2); }
+.enterprise-table-page .enterprises-tabs [aria-current="page"] { background: var(--panel-2); color: var(--accent); font-weight: 650; }
+
+/* Toolbar: one line, no box around it. The search field is the wide element and carries its own
+   submit; the clear link only exists while there is something to clear; "Agregar fila" is the
+   page's single filled button. All three share one height. */
+.enterprise-table-page .enterprises-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); }
+.enterprise-table-page .enterprises-search {
+  flex: 1 1 22rem; flex-wrap: nowrap; gap: var(--sp-2); margin: 0; padding: 0 var(--sp-1) 0 0; min-height: 2.5rem;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.enterprise-table-page .enterprises-search:hover { border-color: var(--border-strong); }
+.enterprise-table-page .enterprises-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.enterprise-table-page .enterprises-search label {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.enterprise-table-page .enterprises-search input[type="search"] {
+  flex: 1 1 8rem; min-width: 0; min-height: 2.375rem; padding: 0 var(--sp-3) 0 2.25rem; color: var(--text); font-size: var(--fs-md);
+  background-color: transparent; border: 0; border-radius: var(--r-md); outline: none; box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23919a9e' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: .875rem 50%;
+}
+.enterprise-table-page .enterprises-search .enterprises-search-go {
+  flex: none; min-height: 2rem; padding: 0 var(--sp-3); font: 600 var(--fs-sm) var(--font-ui); color: var(--text); cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-sm);
+}
+.enterprise-table-page .enterprises-search .enterprises-search-go:hover { border-color: var(--border-strong); }
+.enterprise-table-page .enterprises-clear { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+.enterprise-table-page .enterprises-clear:hover { color: var(--text); }
+.enterprise-table-page .enterprises-toolbar > .btn {
+  display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 2.5rem; padding: 0 var(--sp-4);
+  font-size: var(--fs-md); font-weight: 600; white-space: nowrap; border-radius: var(--r-md);
+}
+.enterprise-table-page .enterprises-toolbar > .btn.primary { color: var(--on-accent); background: var(--accent-2); border-color: transparent; }
+.enterprise-table-page .enterprises-toolbar > .btn.primary:hover { background: var(--accent-2-hover); }
+.enterprise-table-page .enterprises-toolbar > .btn svg { width: 1rem; height: 1rem; }
+.columns-badge { font: 500 var(--fs-xs) var(--font-data); color: var(--muted); }
+@media (max-width: 40rem) {
+  .enterprise-table-page .enterprises-search, .enterprise-table-page .enterprises-clear { flex-basis: 100%; }
+  .enterprise-table-page .enterprises-toolbar > .btn { flex: 1; justify-content: center; }
+}
+.enterprise-table-page .enterprises-status { margin: 0; min-height: 0; }
+.enterprise-table-page .enterprises-status:not(:empty) { margin-bottom: var(--sp-2); }
+
+/* The grid reads like a sheet of paper: no frame, hairlines between rows,
+   and the column names are labels, not a toolbar. */
+.enterprise-table-page .enterprises-grid { overflow-y: visible; border: 0; border-top: 1px solid var(--border-soft); border-radius: 0; background: none; }
+.enterprise-table-page .enterprises-grid thead th {
+  text-transform: none; letter-spacing: 0; font: 600 var(--fs-sm)/1.2 var(--font-ui); color: var(--muted);
+  background: var(--bg); border-bottom: 1px solid var(--border); padding-block: var(--sp-3);
+}
+  min-height: 1.75rem; padding: 0 var(--sp-1); background: none; color: var(--text);
+  border: 0; border-bottom: 1px solid var(--border-soft); border-radius: 0; font-size: var(--fs-sm);
+}
+.enterprise-table-page .enterprises-grid td { border-bottom-color: var(--border-soft); color: var(--text); }
+.enterprise-table-page .enterprises-grid td:first-child, .enterprise-table-page .enterprises-grid th:first-child { padding-left: var(--sp-2); }
+.enterprise-table-page .enterprises-grid tbody tr:hover td { background: var(--panel); }
+/* Row actions appear with the row: the table is for reading first. */
+.enterprise-table-page .enterprises-row-actions { opacity: 0; transition: opacity .12s ease; }
+.enterprise-table-page .enterprises-grid tr:is(:hover, :focus-within) .enterprises-row-actions { opacity: 1; }
+@media (hover: none) { .enterprise-table-page .enterprises-row-actions { opacity: 1; } }
+.enterprise-table-page .enterprises-results-footer { padding-top: var(--sp-3); }
+.enterprise-table-page .enterprises-actions a { padding: var(--sp-1) var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text); text-decoration: none; font-weight: 600; font-size: var(--fs-sm); }
+.enterprise-table-page .enterprises-actions a:hover { background: var(--panel-2); border-color: var(--border-strong); }
+
+/* Reading view: the table shows only the columns that fit, so nothing scrolls
+   sideways; each row opens a card with every field (see enterprises-view.js). */
+.enterprise-table-page .enterprises-grid { max-height: none; overflow: visible; }
+.enterprise-table-page .enterprises-grid table { width: 100%; min-width: 0; table-layout: auto; }
+.enterprise-table-page .enterprises-grid thead { position: static; }
+.enterprise-table-page .enterprises-grid th, .enterprise-table-page .enterprises-grid td { min-width: 0; max-width: 24rem; padding-inline: var(--sp-3); overflow-wrap: anywhere; }
+.enterprise-table-page .enterprises-grid th { white-space: nowrap; }
+.enterprise-table-page .enterprises-grid td { padding-block: var(--sp-2); }
+.enterprise-table-page .enterprises-value {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; line-height: 1.4;
+}
+
+/* Row actions: plain words and an icon, always there, never behind a hover. "Ver" is the way in;
+   the pencil edits. Deleting lives only in the detail sheet, where the record is in front of you. */
+.enterprise-table-page .enterprises-row-actions { opacity: 1; white-space: nowrap; width: 1%; text-align: right; }
+.enterprise-table-page .enterprises-grid .enterprises-row-actions > a.enterprises-remove { display: none; }
+.enterprise-table-page .enterprises-row-actions .row-action {
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-height: 2rem; min-width: 2rem; margin: 0 0 0 var(--sp-1); padding: 0 var(--sp-2);
+  font: 600 var(--fs-md) var(--font-ui); color: var(--accent); background: none; border: 0; border-radius: var(--r-md); box-shadow: none; cursor: pointer;
+}
+.enterprise-table-page .enterprises-row-actions .row-action:hover { background: var(--panel-2); color: var(--text); }
+.enterprise-table-page .enterprises-row-actions .row-action:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.enterprise-table-page .enterprises-row-actions .row-action-icon { color: var(--muted); }
+.enterprise-table-page .enterprises-row-actions .row-action-icon svg { width: 1rem; height: 1rem; }
+
+/* Reading aids. A row that is not active steps back so the live ones stand out; SI/NO columns read as
+   a mark (filled dot / empty ring, so the difference is a shape, not only a colour); the name leads. */
+.enterprise-table-page .enterprises-grid tbody tr:has(td[data-label="Activo" i][data-value="NO" i]) td:not(.enterprises-row-actions) { color: var(--muted); }
+.enterprise-table-page .enterprises-grid td[data-name] .enterprises-value { font-weight: 600; }
+.enterprise-table-page .enterprises-grid td[data-label^="Columna" i] { color: var(--muted); font-size: var(--fs-sm); }
+.enterprises-grid td[data-flag] .enterprises-value { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.enterprises-grid td[data-flag] .enterprises-value::before { content: ""; flex: none; width: .5rem; height: .5rem; border-radius: 50%; border: 1.5px solid var(--muted); }
+.enterprises-grid td[data-flag][data-value="SI" i] .enterprises-value::before,
+.enterprises-grid td[data-flag][data-value="SÍ" i] .enterprises-value::before { background: var(--ok); border-color: var(--ok); }
+.enterprises-grid td[data-flag][data-value=""] .enterprises-value::before { display: none; }
+
+/* Filters: a button with the count, a dialog with one field per column, and the active ones as
+   chips under the toolbar (a click removes that one). */
+.filters-badge { min-width: 1.25rem; padding: 0 .35rem; font: 700 var(--fs-xs)/1.25rem var(--font-ui); text-align: center; color: var(--on-accent); background: var(--accent-2); border-radius: 999px; }
+.filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); padding: 0; list-style: none; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 2rem; padding: 0 var(--sp-2) 0 var(--sp-3); max-width: 22rem;
+  font-size: var(--fs-sm); color: var(--muted); text-decoration: none;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px;
+}
+.filter-chip strong { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-chip svg { flex: none; width: .875rem; height: .875rem; }
+.filter-chip:hover { border-color: var(--accent); }
+.filter-chip:hover svg { color: var(--err); }
+.enterprises-filters-dialog { width: min(56rem, calc(100vw - 1.5rem)); }
+.enterprises-filters-dialog .modal-foot { justify-content: space-between; }
+.filter-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3) var(--sp-4); }
+.filter-field { display: grid; gap: var(--sp-1); min-width: 0; margin: 0; }
+.filter-field > label { margin: 0; font-size: var(--fs-xs); font-weight: 500; color: var(--muted); }
+.enterprises .filter-field :is(input, select) { width: 100%; min-width: 0; min-height: 2.25rem; padding: 0 var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); }
+.enterprises .filter-field :is(input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.enterprises .filter-field :is(input:not(:placeholder-shown), select:has(option:checked:not(:first-child))) { border-color: var(--accent); }
+@media (max-width: 52rem) { .filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 36rem) { .filter-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* Column chooser: a small dialog of chips. Chosen chips fill with the accent
+   and a tick; the rest sit quiet. The count says how many are on. */
+.columns-count { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); color: var(--muted); }
+.columns-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.enterprises .columns-chip { position: relative; display: inline-flex; margin: 0; font-weight: 500; cursor: pointer; }
+.columns-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.columns-chip span {
+  display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-md); line-height: 1.2; color: var(--muted);
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md);
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.columns-chip span::before { content: ""; width: .875rem; height: .875rem; flex: none; border: 1px solid var(--border-strong); border-radius: 50%; }
+.columns-chip:hover span { border-color: var(--border-strong); color: var(--text); }
+.columns-chip input:checked + span {
+  color: var(--text); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+.columns-chip input:checked + span::before {
+  border-color: var(--accent); background: var(--accent) center / .625rem no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 6.5 2.5 2.5 4.5-5'/%3E%3C/svg%3E");
+}
+.columns-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.columns-hint { margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-sm); border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--panel)); border-radius: var(--r-md); }
+.enterprises-columns-dialog { width: min(34rem, calc(100vw - 1.5rem)); }
+.enterprises-columns-dialog .modal-foot { justify-content: space-between; }
+.columns-reset { margin-right: auto; }
+
+/* Detail card: a technical sheet. Who and whether it is active up top, the one
+   action people come for (open the equipment), then the fields by topic. */
+.enterprises-detail { width: min(46rem, calc(100vw - 1.5rem)); }
+.enterprises-detail .modal-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-1) var(--sp-3); align-items: center; padding: var(--sp-4); }
+.enterprises-detail .modal-head h2 { grid-column: 1; font-size: var(--fs-xl); font-weight: 700; overflow-wrap: anywhere; }
+.enterprises-detail .modal-head > .btn { grid-column: 2; grid-row: 1; }
+.enterprises-detail .detail-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.detail-id { font: 500 var(--fs-sm) var(--font-data); color: var(--muted); }
+.detail-status { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; }
+.detail-status::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: var(--muted); }
+.detail-status.is-on { color: var(--ok); }
+.detail-status.is-on::before { background: var(--ok); }
+.detail-status.is-off { color: var(--err); }
+.detail-status.is-off::before { background: var(--err); }
+.detail-open { margin-left: auto; text-decoration: none; }
+
+.detail-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.detail-group { padding: var(--sp-3) var(--sp-4); background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--r-lg); min-width: 0; }
+.detail-network { grid-column: 1 / -1; }
+.detail-group h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+.detail-group dl { display: grid; gap: var(--sp-3) var(--sp-5); margin: 0; }
+.detail-network dl, .detail-wide dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.enterprises .detail-group dd { margin: 0; }
+.detail-field { display: grid; gap: 2px; min-width: 0; }
+.detail-field > dt { font-size: var(--fs-xs); font-weight: 500; color: var(--muted); }
+.detail-field > dd { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; font-size: var(--fs-md); line-height: 1.4; }
+.enterprise-table-page .detail-value { display: block; -webkit-line-clamp: unset; overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+.detail-value.is-technical { font-family: var(--font-data); font-size: var(--fs-lg); letter-spacing: .01em; }
+.detail-value a { color: var(--blue); }
+.detail-copy { flex: none; margin-left: auto; padding: 0 var(--sp-2); font: 600 var(--fs-xs)/1.6 var(--font-ui); color: var(--muted); background: none; border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; }
+.detail-copy:hover { color: var(--text); border-color: var(--border-strong); }
+.detail-note { margin: var(--sp-3) 0 0; font-size: var(--fs-xs); color: var(--muted); }
+@media (max-width: 36rem) {
+  .detail-groups, .detail-network dl, .detail-wide dl { grid-template-columns: minmax(0, 1fr); }
+  .detail-open { margin-left: 0; }
+}
+.enterprises .detail-field .detail-copy { padding: 0 var(--sp-2); font-size: var(--fs-xs); font-weight: 600; line-height: 1.6; min-height: 0; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: var(--r-sm); }
+.enterprises .detail-field .detail-copy:hover { color: var(--text); border-color: var(--border-strong); }
+
+/* Fields line up across columns: every value row has the same height whether
+   or not it carries a button, and long links stay on one line. */
+.detail-group dl { align-items: start; }
+.enterprises .detail-field > dd { align-items: center; min-height: 1.75rem; }
+.detail-value.is-technical { font-size: var(--fs-md); letter-spacing: 0; font-weight: 500; }
+.detail-value.is-link { font-family: var(--font-data); font-size: var(--fs-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.enterprise-table-page .detail-value.is-link { overflow: hidden; white-space: nowrap; }
+.detail-wide { grid-column: 1 / -1; }
+
+/* Edit dialog: the card's groups, with fields. A changed field gets an accent bar and keeps its
+   old value in view ("Antes: ..."); a failed one gets an error bar and says why. */
+.enterprises-edit .modal-body { max-height: min(70vh, 44rem); overflow-y: auto; }
+.enterprises-edit .modal-foot { align-items: center; }
+.edit-status { margin: 0 auto 0 0; font-size: var(--fs-sm); color: var(--muted); }
+.edit-status.is-dirty { color: var(--text); font-weight: 600; }
+.detail-identity { grid-column: 1 / -1; }
+.detail-identity dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.enterprises-edit { width: min(56rem, calc(100vw - 1.5rem)); }
+@media (min-width: 52rem) { .enterprises-edit :is(.detail-identity, .detail-network) dl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.enterprises .edit-field { position: relative; gap: var(--sp-1); padding-left: var(--sp-3); margin-left: calc(var(--sp-3) * -1); border-left: 3px solid transparent; }
+.edit-field > label { font-size: var(--fs-xs); font-weight: 500; color: var(--muted); }
+.edit-field .detail-input { width: 100%; min-height: 2.25rem; padding: var(--sp-1) var(--sp-3); font: inherit; font-size: var(--fs-md); color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); }
+.edit-field textarea.detail-input { resize: vertical; line-height: 1.4; }
+.edit-field .detail-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.edit-field.is-changed { border-left-color: var(--accent); }
+.edit-field.is-changed .detail-input { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.edit-field.has-error { border-left-color: var(--err); }
+.edit-field.has-error .detail-input { border-color: var(--err); }
+.edit-note { min-height: 0; font-size: var(--fs-xs); color: var(--muted); overflow-wrap: anywhere; }
+.edit-note:empty { display: none; }
+.edit-field.has-error .edit-note { color: var(--err); font-weight: 600; }
+@media (max-width: 40rem) { .detail-identity dl { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 40rem) { .enterprises-edit .modal-foot { flex-wrap: wrap; } .edit-status { flex: 1 1 100%; } .enterprises-edit .modal-foot .btn { flex: 1; } }
+
+/* ══ Operational lists (Bajas list and result) ════════════════════════════ */
+/* The page sits on the canvas like the tables around it: no enclosing card and no red wash in the head.
+   What matters is the name of the list, what state it is in, and the one action that cannot be undone. */
+.list-page.card { background: transparent; border: 0; box-shadow: none; }
+.list-page .list-hero { align-items: flex-start; padding: var(--sp-2) 0 var(--sp-4); background: none; border-bottom: 1px solid var(--border-strong); }
+.list-page > .card-body { padding: var(--sp-4) 0 0; }
+.list-page .list-hint { color: var(--muted); }
+/* The table scrolls with the page here, so the header must not stick inside its own wrapper: the
+   shell offset of module tables pushed it down over the first row. */
+.list-page .list-table thead th { position: static; }
+/* The note field shows its edge at rest, not only on hover: it is the one thing you type here. */
+.list-page .list-note textarea { border-color: var(--border-soft); }
+/* Dates, codes and figures never break; only the name, the note and the review text may. */
+.list-page .list-table td:not(.module-name, .list-note-cell, .list-review-cell, .result-detail) { white-space: nowrap; }
+/* Operator lists carry nine columns: the name link and the plan may wrap so the notes column stays on screen. */
+.list-page .operator-table td.module-name a { white-space: normal; }
+.list-page .operator-table td:nth-child(4) { white-space: normal; overflow-wrap: normal; min-width: 6.5rem; }
+.list-page .operator-table th, .list-page .operator-table td { padding-inline: var(--sp-2); }
+.list-page .operator-table .list-note-cell { min-width: 10rem; }
+/* On a phone the table keeps its columns and scrolls sideways, instead of squeezing a name into a letter a line. */
+@media (max-width: 900px) {
+  .list-page .table-scroll { overflow-x: auto; }
+  .list-page .list-table { min-width: 62rem; }
+  .list-page .list-table .module-name { min-width: 10rem; }
+}
+
+/* The list is read to answer one question before the irreversible click: who owes, and how much.
+   Rows with a balance carry a bar on their edge; the balance cell carries a gauge in proportion to the largest
+   one on the page; zero balances step back. Colour is never the only cue: the bar has a length and a key. */
+.list-page .list-legend-key { flex: none; width: .75rem; height: .75rem; border-radius: 2px;
+  background: linear-gradient(90deg, var(--warn) 0 25%, color-mix(in srgb, var(--warn) 30%, transparent) 25%); }
+.list-page .list-table tr[data-owes="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.list-page .list-table .list-balance { min-width: 10rem; }
+.list-page .list-table tr[data-owes="true"] .list-balance {
+  font-weight: 600; color: var(--text);
+  background: linear-gradient(90deg, var(--warn) var(--owed), color-mix(in srgb, var(--warn) 18%, transparent) var(--owed))
+    left bottom .6rem / calc(100% - var(--sp-4)) 4px no-repeat;
+  padding-bottom: 1.1rem;
+}
+.list-page .list-table tr[data-owes="false"] .list-balance { color: var(--muted); }
+/* Notes: an empty line to write on, not a box on every row. The box appears when you write. */
+.list-page .list-note textarea { border-width: 0 0 1px; border-style: dashed; border-color: var(--border); border-radius: 0; background: transparent; }
+.list-page .list-note textarea:focus { border-style: solid; border-width: 1px; border-radius: var(--r-md); }
+
+/* Where you are: the trail from the section to this page, with the current page named and in full weight.
+   The ancestors are links; the last item is not. */
+.crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sp-3); margin: 0; padding: 0; list-style: none; font-size: var(--fs-sm); }
+.crumbs li + li::before { content: "›"; margin-right: var(--sp-3); color: var(--muted); font-size: 1.25em; line-height: 1; }
+.crumbs a { display: inline-block; padding-block: var(--sp-2); color: var(--accent); font-weight: 500; text-decoration: none; }
+.crumbs a:hover, .crumbs a:focus-visible { color: var(--text); text-decoration: underline; text-underline-offset: .2em; }
+.crumbs [aria-current="page"] { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+
+/* Running the list: serious, not loud. A tinted danger button with the weight of its own label; the line
+   under it says what the click will and will not allow. */
+.list-page .btn.danger.list-run-open {
+  padding: var(--sp-3) var(--sp-5); font-size: var(--fs-lg); color: var(--err);
+  background: color-mix(in srgb, var(--err) 12%, var(--panel)); border: 1px solid color-mix(in srgb, var(--err) 55%, transparent);
+}
+html[data-theme="light"] .list-page .btn.danger.list-run-open { color: var(--err-ink); }
+.list-page .btn.danger.list-run-open:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 20%, var(--panel)); border-color: var(--err); }
+
+/* State of the list: it is what decides what you may do, so it is the biggest thing under the name.
+   The marker is a shape as well as a colour: ring while nothing has happened, filled once it has. */
+.list-page .list-hero-state .chip {
+  display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-md); font-weight: 600; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border-strong);
+}
+.list-page .list-hero-state .chip::before { content: ""; flex: none; width: .6rem; height: .6rem; border-radius: 50%; border: 2px solid currentColor; }
+.list-page .list-hero-state .chip[data-list-state="pending"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); }
+.list-page .list-hero-state .chip[data-list-state="waiting"], .list-page .list-hero-state .chip[data-list-state="scheduled"],
+.list-page .list-hero-state .chip[data-list-state="running"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+.list-page .list-hero-state .chip[data-list-state="running"]::before, .list-page .list-hero-state .chip[data-list-state="completed"]::before { background: currentColor; }
+.list-page .list-hero-state .chip[data-list-state="completed"] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, transparent); background: color-mix(in srgb, var(--ok) 10%, var(--panel)); }
+.list-page .list-hero-state .chip.is-err { color: var(--err); border-color: color-mix(in srgb, var(--err) 55%, transparent); background: color-mix(in srgb, var(--err) 10%, var(--panel)); }
+.list-page .list-hero-state .chip.is-err::before { background: currentColor; }
+html[data-theme="light"] .list-page .list-hero-state .chip[data-list-state="pending"] { color: var(--warn-ink, var(--warn)); }
+.list-state-meaning { font-size: var(--fs-sm); color: var(--muted); }
+
+/* What it does: an answer you ask for, not a card you read every time. It sits beside the action it explains. */
+@media (max-width: 600px) {
+    .list-page .list-hero-actions, .list-run-row { width: 100%; }
+  .list-run-row { justify-content: flex-start; }
+  .list-run-row .btn { flex: 1 1 auto; justify-content: center; }
+}
+.list-run-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-3); }
+.list-info-open { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); font-size: var(--fs-md); }
+.list-info-open svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.list-info { width: min(34rem, calc(100vw - 2rem)); padding: var(--sp-5); color: var(--text); background: var(--panel);
+  border: 1px solid var(--border-strong); border-radius: var(--r-lg); box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, .35); }
+.list-info::backdrop { background: rgba(0, 0, 0, .5); }
+.list-info h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-xl); font-weight: 700; }
+.list-info-foot { display: flex; justify-content: flex-end; margin-top: var(--sp-4); }
+.list-page .list-steps { display: grid; gap: var(--sp-3); margin: 0; padding-left: 1.25rem; font-size: var(--fs-lg); line-height: 1.45; }
+.list-page .list-steps li::marker { color: var(--muted); font-weight: 600; }
+.list-page .list-steps strong { font-weight: 600; }
+.list-page .list-steps-note { margin: var(--sp-3) 0 0; color: var(--muted); font-size: var(--fs-md); }
+
+/* A notch larger: this page is read slowly, before something that cannot be undone. */
+.list-page .list-hero h1 { font-size: 1.875rem; }
+.list-page .list-table { font-size: 15px; }
+.list-page .list-stat-value { font-size: 1.75rem; }
+.list-page .crumbs ol { font-size: 1.0625rem; }
+
+/* Top of the list page, in the order it is read: where you are, what this is and in what state, then the figures.
+   Name and state share a line; the sentence and the author sit under them; the actions are centred against the whole block. */
+.list-page .list-hero { align-items: center; }
+.list-page .list-hero-title { gap: var(--sp-1); }
+.list-headline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); }
+.list-page .list-headline h1 { line-height: 1.1; }
+.list-hero-sub { margin: 0; color: var(--muted); font-size: var(--fs-md); }
+.list-hero-by::before { content: "·"; margin: 0 var(--sp-2); }
+
+/* The figures and how to read the table are one strip: two numbers, then the key to the bar and the notes.
+   Same anatomy in every cell (small label, then the content), cells divided by a hairline, no loose text on the page. */
+.list-strip { display: grid; grid-template-columns: auto auto minmax(0, 1fr); margin-bottom: var(--sp-4);
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--r-lg); }
+.list-page .list-strip .list-stat { align-content: start; padding: var(--sp-3) var(--sp-5); background: none; border: 0; border-radius: 0; }
+.list-page .list-strip .list-stat + .list-stat { border-left: 1px solid var(--border-soft); }
+.list-page .list-strip .list-stat-value { white-space: nowrap; }
+.list-strip-key { gap: var(--sp-2); }
+.list-strip-key p { display: flex; align-items: center; gap: var(--sp-2); margin: 0; color: var(--muted); font-size: var(--fs-md); line-height: 1.4; }
+@media (max-width: 760px) {
+  .list-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .list-page .list-strip .list-strip-key { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); }
+}
+
+/* Candidate picker (Suspensiones, Desconexiones): the bar states what is chosen. */
+.suspensions-candidates .candidate-command-bar { gap: var(--sp-3) var(--sp-4); }
+.suspensions-candidates .candidate-selection-summary { flex: 0 1 auto; min-width: 11rem; margin: 0; font-size: var(--fs-md); color: var(--muted); }
+.suspensions-candidates .candidate-command-bar[data-active="true"] .candidate-selection-summary { color: var(--text); font-weight: 600; }
+.suspensions-candidates .candidate-command-bar .btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+.suspensions-candidates .operator-status-filter { align-items: center; gap: var(--sp-3) var(--sp-5); margin-bottom: var(--sp-2); }
+.suspensions-candidates .operator-status-group { align-items: center; }
+.suspensions-candidates .candidate-criteria { margin: 0 0 var(--sp-3); color: var(--muted); font-size: var(--fs-sm); }
+
+/* With the open-clients rail collapsed there is no rail/content gap to protect, so a capped page centres in the
+   space the rail leaves instead of hugging the left. width:100% keeps uncapped pages (tickets, bajas) full width:
+   auto margins alone would shrink main to its content inside the flex body. */
+html[data-rail="closed"] main,
+html:has(.open-clients-rail.rail-session-only) main { width: 100%; margin-inline: auto; }
+
+/* ══ Interesados ═══════════════════════════════════════════════════════════ */
+/* The strip is also the filter: each figure is a link, the current one carries a bar, so nothing depends on colour or hover. */
+.prospect-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.list-page .prospect-strip .prospect-stat { color: inherit; text-decoration: none; position: relative; }
+.list-page .prospect-strip .prospect-stat:hover { background: var(--panel); }
+.list-page .prospect-strip .prospect-stat[aria-current="page"] { background: var(--panel); box-shadow: inset 0 -3px 0 var(--accent); }
+.list-page .prospect-strip .prospect-stat .list-stat-value { color: var(--muted); }
+.list-page .prospect-strip .prospect-stat[data-tone] .list-stat-value, .list-page .prospect-strip .prospect-stat[aria-current="page"] .list-stat-value { color: var(--text); }
+.list-page .prospect-strip .prospect-stat[data-tone="warn"] .list-stat-value { color: var(--warn); }
+.list-page .prospect-strip .prospect-stat[data-tone="info"] .list-stat-value { color: var(--accent); }
+.list-page .prospect-strip .prospect-stat[data-tone="ok"] .list-stat-value { color: var(--ok); }
+.list-page .prospect-strip .prospect-stat[data-tone="err"] .list-stat-value { color: var(--err); }
+.list-page .prospect-strip .prospect-stat:first-child { border-left: 0; }
+@media (max-width: 760px) {
+  .prospect-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .list-page .prospect-strip .prospect-stat:nth-child(4) { border-left: 0; }
+  .list-page .prospect-strip .prospect-stat:nth-child(n + 4) { border-top: 1px solid var(--border-soft); }
+}
+@media (max-width: 420px) {
+  .prospect-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .list-page .prospect-strip .prospect-stat:nth-child(odd) { border-left: 0; }
+  .list-page .prospect-strip .prospect-stat:nth-child(n + 3) { border-top: 1px solid var(--border-soft); }
+  .list-page .prospect-strip .prospect-stat:nth-child(4) { border-left: 1px solid var(--border-soft); }
+}
+
+/* Loading someone is the job this page repeats all day, so the form stays open under the figures, on its own band. */
+.list-page .prospect-form { margin-bottom: var(--sp-4); padding: var(--sp-4); background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--r-lg); }
+
+/* State: the colour is the decision; the marker says whether the person was told (ring = not yet, filled = told). */
+.prospect-state-cell { display: grid; justify-items: start; gap: var(--sp-1); }
+.prospect-state { display: inline-flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-3); font-size: var(--fs-md); font-weight: 600; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border-strong); }
+.prospect-state::before { content: ""; flex: none; width: .6rem; height: .6rem; border-radius: 50%; border: 2px solid currentColor; }
+.prospect-state[data-informed="true"]::before { background: currentColor; }
+.prospect-state-told { font-size: var(--fs-sm); }
+.prospect-state[data-prospect-state="pending"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); }
+.prospect-state[data-prospect-state="approved"] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, transparent); background: color-mix(in srgb, var(--ok) 10%, var(--panel)); }
+.prospect-state[data-prospect-state="rejected"] { color: var(--err); border-color: color-mix(in srgb, var(--err) 55%, transparent); background: color-mix(in srgb, var(--err) 10%, var(--panel)); }
+html[data-theme="light"] .prospect-state[data-prospect-state="pending"] { color: var(--warn-ink, var(--warn)); }
+html[data-theme="light"] .prospect-state[data-prospect-state="rejected"] { color: var(--err-ink, var(--err)); }
+
+/* Who still owes a step carries a bar on the edge of the row: amber waits for a decision, accent waits to be told. */
+.prospect-table tr[data-needs="decide"] > td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+.prospect-table tr[data-needs="inform"] > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.prospect-phone { font-size: var(--fs-lg); }
+.prospect-loaded { font-size: var(--fs-sm); }
+
+/* Actions are tinted, not filled: the one that closes the decision says so under its own label. */
+.prospect-actions .btn { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); }
+.prospect-actions .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border-color: var(--accent); }
+.prospect-actions .prospect-inform-button { color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.prospect-actions .prospect-inform-button:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 18%, var(--panel)); border-color: var(--warn); }
+html[data-theme="light"] .prospect-actions .btn { color: var(--accent-ink, var(--accent)); }
+html[data-theme="light"] .prospect-actions .prospect-inform-button { color: var(--warn-ink, var(--warn)); }
+.prospect-inform { display: grid; gap: var(--sp-1); justify-items: start; }
+.prospect-inform-note { font-size: var(--fs-sm); }
+.prospect-empty { padding: var(--sp-5) 0; }
+@media (max-width: 760px) {
+  .prospect-table tr[data-needs="decide"] > td:first-child, .prospect-table tr[data-needs="inform"] > td:first-child { box-shadow: none; }
+  .prospect-table tr[data-needs="decide"] { box-shadow: inset 3px 0 0 var(--warn); }
+  .prospect-table tr[data-needs="inform"] { box-shadow: inset 3px 0 0 var(--accent); }
+}
+
+/* ══ Preferencias ═════════════════════════════════════════════════════════ */
+/* Three settings, so the page stays a column to read: each row names the setting and says what it really does.
+   The whole row is the target, which is what makes it usable with a thumb. */
+.prefs-page.card { max-width: 46rem; background: transparent; border: 0; box-shadow: none; padding: 0; }
+.prefs-head { padding: var(--sp-2) 0 var(--sp-4); border-bottom: 1px solid var(--border-strong); }
+.prefs-head h1 { margin: 0 0 var(--sp-2); font-size: 1.875rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+.prefs-head p { margin: 0; color: var(--muted); font-size: var(--fs-md); }
+.prefs-page .notice { margin: var(--sp-4) 0 0; }
+.prefs-form { margin-top: var(--sp-2); }
+.prefs-form .pref { display: flex; align-items: flex-start; gap: var(--sp-4); min-height: 2.75rem; padding: var(--sp-4) var(--sp-2); border-bottom: 1px solid var(--border-soft); cursor: pointer; }
+.prefs-form .pref input { flex: none; width: 1.25rem; height: 1.25rem; margin: .125rem 0 0; accent-color: var(--accent); }
+.prefs-form .pref-text { display: grid; gap: var(--sp-1); min-width: 0; overflow-wrap: anywhere; }
+.prefs-form .pref-text strong { font-size: var(--fs-lg); font-weight: 600; }
+.prefs-form .pref-effect { color: var(--muted); font-size: var(--fs-md); line-height: 1.5; }
+.prefs-form .pref:has(input:checked) { box-shadow: inset 3px 0 0 var(--accent); }
+.prefs-form .pref:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.prefs-theme { margin: var(--sp-4) var(--sp-2) 0; font-size: var(--fs-md); }
+.prefs-actions { margin: var(--sp-4) var(--sp-2) 0; }
+@media (max-width: 600px) { .prefs-form .pref { padding-inline: var(--sp-1); } .prefs-actions .btn { width: 100%; } }
+
+/* Interesados is a table page like Tickets and Clientes, so it takes the full width too; Ayuda keeps its reading cap. */
+body:has(.prospects-page) main { max-width: none; }

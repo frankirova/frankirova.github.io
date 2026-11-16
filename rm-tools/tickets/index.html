@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Tickets · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+</head>
+<body class="tickets-page">
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Tickets</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab " href="/rm-tools/">Panel</a>
+        <a class="tab " href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab active" aria-current="page" href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<h1 class="page-title">Tickets</h1>
+<form class="toolbar" method="get" action="/tickets"
+      hx-get="/tickets/buscar"
+      hx-target="#tickets-result"
+      hx-trigger="submit, change, keyup changed delay:300ms"
+      hx-indicator="#tickets-spinner">
+  <input type="search" name="q" value="" placeholder="ID, cliente, categoría…" aria-label="Buscar por ID, cliente o categoría">
+  <select name="status_id" aria-label="Estado">
+    <option value="">Estado: todos</option>
+    
+      <option value="1" >Abierto (13)</option>
+    
+      <option value="4" >En curso (12)</option>
+    
+  </select>
+  <select name="category_id" aria-label="Categoría">
+    <option value="">Categoría: todas</option>
+    
+      <option value="25" >BAJA (5)</option>
+    
+      <option value="43" >GESTION COBRANZA (5)</option>
+    
+      <option value="38" >ORDEN DE DESCONEXION (5)</option>
+    
+      <option value="12" >SIN INTERNET (5)</option>
+    
+      <option value="39" >SUSP. SERV. (5)</option>
+    
+  </select>
+  <select name="priority_id" aria-label="Prioridad">
+    <option value="">Prioridad: todas</option>
+    
+      <option value="1" >Baja (9)</option>
+    
+      <option value="3" >Alta (8)</option>
+    
+      <option value="2" >Media (8)</option>
+    
+  </select>
+  <select name="area_id" aria-label="Área">
+    <option value="">Área: todas</option>
+    
+      <option value="2" >Soporte técnico (13)</option>
+    
+      <option value="5" >Atención al cliente (12)</option>
+    
+  </select>
+  <div class="tickets-page-size">
+    <label for="ticket-page-size">Filas por página</label>
+    <input id="ticket-page-size" name="page_size" type="number" min="1" max="1000" step="1" value="50">
+  </div>
+  <div class="tickets-filter-actions">
+    <button class="btn primary" type="submit">Aplicar filtros</button>
+    <a class="btn ghost" href="/rm-tools/tickets/">Limpiar</a>
+    <span class="spinner" id="tickets-spinner"></span>
+  </div>
+</form>
+
+<div class="toolbar">
+  <a class="btn primary" href="#installation-booking" data-installation-booking aria-controls="installation-booking" aria-expanded="false">Nueva instalación</a>
+  <span class="muted">Filtra sobre la caché: no consulta ISPCube.</span>
+  <span class="spacer"></span>
+  <span class="chips">
+    <span class="chip info">25 abiertos</span>
+    <span class="chip">0 cerrados (30 días)</span>
+  </span>
+</div>
+
+<div id="tickets-result">
+  
+
+
+
+
+
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=id&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">ID</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=created_at&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Creado</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=customer_name&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Cliente</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=category&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Categoría</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=status&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Estado</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=priority&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Prioridad</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=area&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Área</a></th>
+        
+        <th scope="col" aria-sort="none"><a href="/rm-tools/tickets/"
+            hx-get="/tickets/buscar?page=1&amp;sort=assigned&amp;direction=desc"
+            hx-target="#tickets-result" hx-indicator="#tickets-spinner">Asignado</a></th>
+        
+      </tr>
+    </thead>
+    <tbody>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">1</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8800</a></td>
+          <td class="mono muted">25/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001000/">001000</a>
+            ESTUDIO CONTABLE ANDES S.R.L.
+          </td>
+          <td>SUSP. SERV.</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">2</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8801</a></td>
+          <td class="mono muted">26/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001001/">001001</a>
+            FERNÁNDEZ PAZ
+          </td>
+          <td>ORDEN DE DESCONEXION</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">3</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8802</a></td>
+          <td class="mono muted">27/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001002/">001002</a>
+            ROMERO GALLARDO
+          </td>
+          <td>BAJA</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">4</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8803</a></td>
+          <td class="mono muted">28/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001003/">001003</a>
+            TORRES VARGAS
+          </td>
+          <td>GESTION COBRANZA</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">5</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8804</a></td>
+          <td class="mono muted">29/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001004/">001004</a>
+            BENÍTEZ OCAMPO
+          </td>
+          <td>SIN INTERNET</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">6</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8805</a></td>
+          <td class="mono muted">30/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001005/">001005</a>
+            COOPERATIVA EL PROGRESO
+          </td>
+          <td>SUSP. SERV.</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">7</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8806</a></td>
+          <td class="mono muted">31/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001006/">001006</a>
+            GIMÉNEZ URQUIZA
+          </td>
+          <td>ORDEN DE DESCONEXION</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">8</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8807</a></td>
+          <td class="mono muted">01/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001007/">001007</a>
+            SILVA NAVARRO
+          </td>
+          <td>BAJA</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">9</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8808</a></td>
+          <td class="mono muted">02/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001008/">001008</a>
+            GÓMEZ ESCOBAR
+          </td>
+          <td>GESTION COBRANZA</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">10</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8809</a></td>
+          <td class="mono muted">03/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001009/">001009</a>
+            LÓPEZ TOLEDO
+          </td>
+          <td>SIN INTERNET</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">11</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8810</a></td>
+          <td class="mono muted">04/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001010/">001010</a>
+            PANADERÍA LA ESPIGA
+          </td>
+          <td>SUSP. SERV.</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">12</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8811</a></td>
+          <td class="mono muted">05/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001011/">001011</a>
+            RAMÍREZ DUARTE
+          </td>
+          <td>ORDEN DE DESCONEXION</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">13</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8812</a></td>
+          <td class="mono muted">06/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001012/">001012</a>
+            ACOSTA SARMIENTO
+          </td>
+          <td>BAJA</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">14</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8813</a></td>
+          <td class="mono muted">07/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001013/">001013</a>
+            MEDINA LAFUENTE
+          </td>
+          <td>GESTION COBRANZA</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">15</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8814</a></td>
+          <td class="mono muted">08/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001014/">001014</a>
+            ROJAS CUELLO
+          </td>
+          <td>SIN INTERNET</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">16</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8815</a></td>
+          <td class="mono muted">09/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001015/">001015</a>
+            TALLER RODRÍGUEZ S.R.L.
+          </td>
+          <td>SUSP. SERV.</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">17</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8816</a></td>
+          <td class="mono muted">10/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001016/">001016</a>
+            FERNÁNDEZ JUÁREZ
+          </td>
+          <td>ORDEN DE DESCONEXION</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">18</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8817</a></td>
+          <td class="mono muted">11/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001017/">001017</a>
+            ROMERO BENÍTEZ
+          </td>
+          <td>BAJA</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">19</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8818</a></td>
+          <td class="mono muted">12/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001018/">001018</a>
+            TORRES QUIROGA
+          </td>
+          <td>GESTION COBRANZA</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">20</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8819</a></td>
+          <td class="mono muted">13/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001019/">001019</a>
+            BENÍTEZ IBÁÑEZ
+          </td>
+          <td>SIN INTERNET</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">21</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8820</a></td>
+          <td class="mono muted">14/11/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001020/">001020</a>
+            CLÍNICA DEL SOL S.A.
+          </td>
+          <td>SUSP. SERV.</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">22</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8821</a></td>
+          <td class="mono muted">25/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001021/">001021</a>
+            GIMÉNEZ PAZ
+          </td>
+          <td>ORDEN DE DESCONEXION</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">23</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8822</a></td>
+          <td class="mono muted">26/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001022/">001022</a>
+            SILVA GALLARDO
+          </td>
+          <td>BAJA</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip warn">Media</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">24</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8823</a></td>
+          <td class="mono muted">27/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001023/">001023</a>
+            MARTÍNEZ VARGAS
+          </td>
+          <td>GESTION COBRANZA</td>
+          <td>
+            <span class="chip info">En curso</span>
+          </td>
+          <td>
+            <span class="chip err">Alta</span>
+          </td>
+          <td>Atención al cliente</td>
+          <td>sin asignar</td>
+        </tr>
+      
+        
+        
+        <tr class="row-link" data-ticket-open>
+          <td class="mono">25</td>
+          <td class="mono"><a href="/rm-tools/no-disponible/">8824</a></td>
+          <td class="mono muted">28/10/2026</td>
+          <td class="cell-wrap">
+            <a href="/rm-tools/clientes/001024/">001024</a>
+            LÓPEZ OCAMPO
+          </td>
+          <td>SIN INTERNET</td>
+          <td>
+            <span class="chip info">Abierto</span>
+          </td>
+          <td>
+            <span class="chip">Baja</span>
+          </td>
+          <td>Soporte técnico</td>
+          <td>sin asignar</td>
+        </tr>
+      
+    </tbody>
+  </table>
+</div>
+<div class="tickets-results-footer">
+<p class="muted table-note">25 tickets.</p>
+<p class="muted" role="status">Mostrando 25 de 25 tickets.</p>
+<nav class="listing-pagination" aria-label="Páginas de tickets">
+  
+  <span>Página 1 de 1</span>
+  
+</nav>
+</div>
+</div>
+
+<dialog class="modal ticket-compose" id="installation-booking" aria-labelledby="installation-booking-title">
+  <div class="modal-head"><h2 id="installation-booking-title">Nueva instalación</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body" id="installation-booking-body">
+
+
+<p class="installation-note">Para un cliente nuevo: crea un cliente temporal y su ticket. <span class="muted">Queda bloqueado y sin servicio hasta su alta definitiva.</span></p>
+<form class="installation-form" hx-post="/tickets/instalacion" hx-target="#installation-booking-body" hx-swap="innerHTML" hx-disabled-elt="find button">
+  <div class="installation-columns">
+    <section class="installation-group" aria-label="Datos del cliente">
+      
+      <label class="field"><span class="field-label">Nombre y apellido</span><input type="text" name="name" value="" required></label>
+      
+      <label class="field"><span class="field-label">Documento</span><input type="text" name="doc_number" value="" required></label>
+      
+      <label class="field"><span class="field-label">Teléfono</span><input type="tel" name="phone_number" value="" required></label>
+      
+      <label class="field"><span class="field-label">Dirección</span><input type="text" name="address" value="" required></label>
+      
+      <label class="field"><span class="field-label">Mail (opcional)</span><input type="email" name="email" autocomplete="email" maxlength="254" value=""></label>
+      <label class="field"><span class="field-label">Localidad</span><select name="city_id" required><option value="">Seleccioná…</option><option value="35" selected>Cordoba (CP 5000)</option></select></label>
+    </section>
+    <section class="installation-group" aria-label="Datos fiscales e instalación">
+      
+      <label class="field"><span class="field-label">Medio de pago</span><select name="entity_id" required><option value="">Seleccioná…</option><option value="2" selected>Caja</option></select></label>
+      
+      <label class="field"><span class="field-label">Situación fiscal</span><select name="tax_situation_id" required><option value="">Seleccioná…</option><option value="4" selected>Consumidor Final</option></select></label>
+      
+      <label class="field"><span class="field-label">Tipo de identificación</span><select name="identification_type_id" required><option value="">Seleccioná…</option><option value="7" selected>DNI</option></select></label>
+      
+      
+      <label class="field"><span class="field-label">Instalación</span><select name="ticket_category_id" required><option value="">Seleccioná…</option></select></label>
+      
+      <label class="field"><span class="field-label">Estado</span><select name="ticket_status_id" required><option value="">Seleccioná…</option><option value="1" selected>Abierto</option><option value="4">En curso</option></select></label>
+      
+      <label class="field"><span class="field-label">Asignado</span><select name="assigned_user_id" required><option value="">Seleccioná…</option><option value="193" selected>Diego</option></select></label>
+    </section>
+  </div>
+  <p class="muted installation-note">Opciones del padrón guardado: no son un catálogo completo de ISPCube. Precargados editables; prioridad siempre Normal.</p>
+  <label class="field"><span class="field-label">Detalle / coordinación de instalación</span><textarea name="item_content" rows="3" required></textarea></label>
+  <div class="notice warn">Faltan catálogos de instalación. Actualizá el panel antes de agendar.</div>
+  <footer class="modal-foot"><button class="btn primary" type="submit" disabled>Crear cliente temporal y ticket</button></footer>
+</form></div>
+</dialog>
+
+<dialog class="modal modal-lg" id="ticket-detail" aria-label="Detalle del ticket"><div class="modal-head"><h2>Ticket</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div><div class="modal-body" id="ticket-detail-body"></div></dialog>
+
+
+    <footer class="meta" id="meta" >
+  <span>Última actualización: <time datetime="2026-11-16T15:33:25.904025+00:00">16/11/2026 12:33</time></span>
+  
+  
+  
+</footer>
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>

@@ -1,0 +1,2309 @@
+/* rm-tools — visual language v2 (light/dark, glance-first, dense).
+   Tokens are the customer-card (NetMap) palette, shared by every route so the
+   compact shell never changes colour between pages; the type split, depth
+   tokens and the verdict rail are new here.
+   Every class name the templates already use keeps working: this file restyles
+   them, it never deletes them.
+
+   Structure: every rule is defined once and lives in a cascade layer. A later
+   layer beats an earlier one whatever the selector specificity, so pages can
+   restyle components without out-specifying them and state rules (hidden,
+   closed disclosure, active chip) cannot be overridden by accident:
+     reset      -> universal box model
+     tokens     -> custom properties (palette, geometry, rail state)
+     base       -> element defaults (body, links, main, tables)
+     components -> shared building blocks, in section order
+     pages      -> the customer page (`.client-detail` scope)
+     utilities  -> state rules that must always win
+   Rules inside a layer block are intentionally not indented.
+
+   Breakpoints (max-width; CSS variables cannot be used in media queries, so
+   these four are the whole set, and a test pins them):
+     23.75rem (380px)  very narrow phones
+     37.5rem  (600px)  phones: stacked forms, wrapping shell, wrapping tabs
+     56.25rem (900px)  tablet: mobile shell + rail overlay + single-column ficha
+     64rem   (1024px)  compact laptops: dense grids drop columns */
+@layer reset, tokens, base, components, pages, utilities;
+
+/* ═══ reset ══════════════════════════════════════════════════════════════ */
+@layer reset {
+* { box-sizing: border-box; }
+}
+
+/* ═══ tokens ═════════════════════════════════════════════════════════════ */
+@layer tokens {
+:root {
+  color-scheme: dark;
+  /* Palette — the customer-card (NetMap) tokens. Every page inherits them, so
+     the shared shell, links, focus rings and tabs match the ficha. The scoped
+     .client-detail block below re-declares the same values and stays put as
+     the NetMap isolation contract. */
+  --bg: #0d0f14;
+  --panel: #12151c;
+  --panel-2: #181c26;
+  --panel-3: #1e2330;
+  --border: rgba(255, 255, 255, .14);
+  --border-soft: rgba(255, 255, 255, .07);
+  --text: #e8eaf0;
+  --muted: #8b90a0;
+  --accent: #1d9e75;
+  --accent-2: #116b52;
+  --ok: #5dcaa5;
+  --warn: #fac775;
+  --err: #f09595;
+  --blue: #85b7eb;
+  --ok-strong: #1d9e75;
+  --warn-strong: #ef9f27;
+  --err-strong: #e24b4a;
+  --ok-tint: color-mix(in srgb, var(--ok-strong) 12%, transparent);
+  --warn-tint: color-mix(in srgb, var(--warn-strong) 12%, transparent);
+  --err-tint: color-mix(in srgb, var(--err-strong) 12%, transparent);
+  --info-tint: color-mix(in srgb, var(--blue) 12%, transparent);
+  --border-strong: rgba(255, 255, 255, .22);
+  --surface-tip: var(--panel-3);
+  --accent-2-hover: #157d60;
+  --on-accent: #fff;
+  --backdrop: rgba(10, 13, 18, .6);
+
+  /* Operator result roles: preserve default and explicit dark-theme hues. */
+  --operator-result-success: #176434;
+  --operator-result-review: #805000;
+  --operator-result-success-dark: #8ee6ac;
+  --operator-result-review-dark: #ffda85;
+
+  /* Geometry */
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+  /* Modal widths: small forms, standard dialogs, ticket detail. */
+  --modal-sm: 30rem;
+  --modal-md: 40rem;
+  --modal-lg: 60rem;
+  --gap: 1rem;
+  /* Spacing scale: every padding, margin, gap and inset snaps to one of these. */
+  --sp-1: .25rem;
+  --sp-2: .5rem;
+  --sp-3: .75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2.5rem;
+  /* Icon-only button sizes: 36 default, 28 dense/inline. */
+  --btn-icon: 36px;
+  --btn-icon-sm: 28px;
+
+  /* Type split: sans for UI text, mono for data (IP, doc, phone, email,
+     amounts, codes, dates). */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-data: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --fs-xs: 0.6875rem;
+  --fs-sm: 0.75rem;
+  --fs-md: 0.8125rem;
+  --fs-nav: 0.875rem;
+  /* Nav sits one step above body copy: bigger targets without breaking the
+     compact shell. */
+  --fs-nav: 0.9375rem;
+  --fs-lg: 1rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+
+  /* Depth */
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  --scroll-shade: rgba(0, 0, 0, .35);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, .45);
+  --shadow-header: 0 10px 30px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .04);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, .16);
+  --hairline-faint: rgba(255, 255, 255, .015);
+
+  /* Shell and side rail. --shell-h mirrors the height of the one compact
+     sticky shell (.client-shell, 60px) so the rail never overlaps it and the
+     nav never shifts — only main carries the rail padding. --rail-current
+     follows the rail state (open / collapsed / overlaid on narrow screens). */
+  --shell-h: 3.75rem;
+  --rail-w: 14.5rem;
+  --rail-w-closed: 2.25rem;
+  --rail-current: var(--rail-w);
+  --page-gutter: 1.5rem;
+  --content-max: 87.5rem;
+}
+/* Theme palettes change color and depth only; geometry is shared. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --panel: #ffffff;
+  --panel-2: #edf1f5;
+  --panel-3: #e3e9f0;
+  --border: rgba(25, 40, 60, .18);
+  --border-soft: rgba(25, 40, 60, .09);
+  --border-strong: rgba(25, 40, 60, .3);
+  --text: #1c2736;
+  --muted: #58677a;
+  --accent: #087454;
+  --accent-2: #116b52;
+  --ok: #087454;
+  --warn: #8a5300;
+  --err: #b52b35;
+  --err-ink: #951f2a;
+  --blue: #235d99;
+  --ok-strong: #087454;
+  --warn-strong: #a76400;
+  --err-strong: #b52b35;
+  --shadow: 0 1px 2px rgba(25, 40, 60, .08);
+  --scroll-shade: rgba(25, 40, 60, .16);
+  --shadow-lift: 0 8px 24px rgba(25, 40, 60, .14);
+  --shadow-header: 0 10px 30px rgba(25, 40, 60, .08), inset 0 1px 0 rgba(255, 255, 255, .7);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, .7);
+  --hairline-faint: rgba(25, 40, 60, .025);
+  --backdrop: rgba(25, 40, 60, .35);
+}
+html[data-rail="closed"] { --rail-current: var(--rail-w-closed); }
+/* The open rail overlays content instead of squeezing it on narrow screens. */
+@media (max-width: 56.25rem) {
+  html[data-rail="open"] { --rail-current: 0px; }
+}
+}
+
+/* ═══ base ═══════════════════════════════════════════════════════════════ */
+@layer base {
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Content sits right of the side rail with a gutter and is left-aligned, so a
+   wide screen never opens a dead gap between rail and content. --rail-current
+   follows the rail state; once it is known, the utilities layer re-asserts
+   the left offset over any page padding. */
+main {
+  padding: var(--sp-4) var(--sp-5) 3.75rem calc(var(--rail-current) + var(--page-gutter));
+  max-width: calc(var(--rail-current) + var(--page-gutter) * 2 + var(--content-max));
+  margin: 0;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  background: var(--panel-2);
+}
+thead th { position: sticky; top: 0; z-index: 2; }
+tbody tr:hover { background: var(--panel-2); }
+}
+
+/* ═══ components ══════════════════════════════════════════════════════════ */
+@layer components {
+
+/* One visible ring for every control, keyboard users included. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Icons ───────────────────────────────────────────────────────────── */
+
+.customer-action-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+  flex-shrink: 0;
+}
+.customer-copy-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Shell ───────────────────────────────────────────────────────────── */
+
+/* One compact ficha-style shell on every page: brand + inline tabs on the
+   left, the client search on the right. Sticky, so the rail (below) can
+   anchor to its measured height without ever overlapping it. Nav and side
+   rail read as one L-shaped frame. */
+.client-shell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  height: 3.75rem;
+  padding: 0 var(--sp-4) 0 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: var(--sp-4);
+}
+.client-shell-left { display: flex; align-items: center; align-self: stretch; gap: 0; min-width: min-content; }
+.client-logo { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+/* Logo block sits over the rail column and shares its divider line. */
+.client-shell .client-logo { display: flex; align-items: center; align-self: stretch; box-sizing: border-box; width: auto; flex-basis: var(--rail-w); padding: 0 var(--sp-4); margin-right: var(--sp-3); border-right: 1px solid var(--border); letter-spacing: .2px; }
+/* Without the open-clients list the rail is a strip, so the brand block only wraps its own text and the navigation sits next to it. */
+html:has(.rail-session-only) .client-shell .client-logo { flex-basis: auto; }
+.client-shell .client-logo::before { content: ""; width: .5rem; height: .5rem; margin-right: var(--sp-3); border-radius: 2px; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+html[data-rail="closed"] .client-shell .client-logo { flex-basis: auto; }
+.tabs {
+  display: flex;
+  gap: var(--sp-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.shell-navigation { min-width: 0; flex: 1 1 auto; }
+.client-shell .tabs { width: max-content; max-width: 100%; gap: var(--sp-2); flex-wrap: nowrap; border-bottom: 2px solid var(--accent); }
+/* Groups keep their own links together but may wrap inside when the shell is
+   narrow and the script has not re-measured yet (a single resize frame). */
+.nav-group { display: flex; flex: none; flex-wrap: wrap; max-width: 100%; gap: var(--sp-2); }
+.nav-group-label { display: none; }
+/* A group with a single destination wraps its link in the label: the group keeps
+   its aria-label and the link its name, without printing the same text twice. */
+.nav-group-label-single { display: inline-flex; align-items: center; padding: 0; }
+.shell-navigation-toggle { display: none; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel-2); color: var(--text); font: inherit; cursor: pointer; max-width: 100%; }
+.shell-current-module { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.tab {
+  padding: var(--sp-2) var(--sp-4);
+  font: inherit;
+  font-size: var(--fs-nav);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+}
+.tab:hover { color: var(--text); }
+/* External links: grouped after a divider, marked with a north-east arrow. */
+.tab-external { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: .92em; }
+.tab-external::after { content: "↗"; font-size: .85em; opacity: .55; }
+.tab-external:hover::after { opacity: 1; }
+.tab-external-first { margin-left: var(--sp-4); padding-left: var(--sp-4); position: relative; }
+.tab-external-first::before { content: ""; position: absolute; left: 0; top: 50%; width: 1px; height: 1.125rem; transform: translateY(-50%); background: var(--border); }
+.tab.active { color: var(--text); background: transparent; border-bottom-color: var(--accent); }
+.client-shell .tab { display: flex; flex: none; align-items: center; padding: var(--sp-2) var(--sp-3); margin: 0; border-bottom: 0; white-space: nowrap; }
+/* A tinted tab sits on the group's continuous baseline, not a floating pill. */
+.client-shell .tab.active { color: var(--text); background: color-mix(in srgb, var(--accent) 38%, var(--panel)); font-weight: 600; border-radius: var(--r-md) var(--r-md) 0 0; border-bottom-color: var(--accent); }
+.client-shell .tab-external-first { margin-left: var(--sp-3); padding-left: var(--sp-3); }
+/* Allow search to shrink before the shared header exceeds the viewport. */
+.client-shell-right { display: flex; align-items: center; gap: var(--sp-3); flex: 0 0 auto; min-width: 15rem; justify-content: flex-end; }
+.client-shell .client-search { min-width: 0; }
+.session-user { color: var(--muted); font-family: var(--font-data); }
+.theme-selector { display: inline-flex; flex: none; gap: var(--sp-1); padding: var(--sp-1); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-pill); }
+.theme-option { display: inline-flex; align-items: center; justify-content: center; width: var(--btn-icon); height: var(--btn-icon); padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); cursor: pointer; }
+.theme-option:hover { color: var(--text); background: var(--panel-3); }
+.theme-option[aria-pressed="true"] { color: var(--accent); background: var(--panel); box-shadow: var(--shadow); }
+.client-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+}
+/* Attribute selector so it outranks the generic Forms rule below (same layer:
+   input[type="search"] … min-width: 17.5rem, padding .4375rem .625rem). */
+.client-search input[type="search"] { flex: 1; width: 11rem; min-width: 0; height: 1.75rem; padding: 0; border: 0; background: transparent; }
+.client-search input[type="search"]::placeholder { color: var(--muted); opacity: 1; }
+/* N1: decorative keyboard-of-choice chip; JS swaps the label per platform
+   (⌘K on Apple), the server-rendered text is the no-JS fallback. */
+.client-search-hint {
+  padding: .125rem var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-family: var(--font-data);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.client-search-hint::before { display: none; }
+/* Keep the desktop shell at its rail offset; compact links at the existing breakpoint. */
+@media (max-width: 64rem) {
+  .client-shell { gap: var(--sp-2); }
+  .client-shell .client-logo { flex-basis: auto; margin-right: var(--sp-1); }
+  .client-shell .tab-external-first { margin-left: 0; padding-left: var(--sp-2); }
+  .client-shell-right { min-width: 0; }
+  .client-search input[type="search"] { width: 8rem; min-width: 4.5rem; }
+}
+.client-shell-left { min-width: 0; flex: 1 1 auto; }
+.client-shell .tabs { min-width: 0; align-content: center; }
+@media (max-width: 56.25rem) {
+  .client-shell { position: relative; z-index: 20; height: auto; padding: var(--sp-3) var(--sp-3); flex-wrap: wrap; }
+  .client-shell-left { min-width: 0; max-width: 100%; flex-wrap: nowrap; }
+  .client-shell-right { flex-basis: 100%; min-width: 0; }
+  .client-shell .client-logo { width: auto; padding: 0; margin-right: var(--sp-3); border-right: 0; }
+  .client-shell .tab { padding: var(--sp-2) var(--sp-3); }
+}
+@media (max-width: 37.5rem) {
+  .client-shell { flex-wrap: wrap; gap: var(--sp-3); }
+  .client-shell-right { width: 100%; flex-wrap: wrap; }
+  .client-search { flex: 1; min-width: 0; }
+  .client-search input[type="search"] { flex: 1; width: 100%; }
+}
+
+/* Wide desktop: the same destinations in at most two rows, grouped by task and
+   with their labels, so the empty band next to the brand is used instead of a
+   menu button. shell-navigation.js measures the real layout and falls back to
+   the compact menu when the rows overflow the shell. */
+@media (min-width: 64.0625rem) {
+  .client-shell .tabs { width: auto; flex-wrap: wrap; align-content: center; gap: 0 var(--sp-1); }
+  .client-shell .nav-group { align-items: center; gap: var(--sp-1); }
+  .client-shell .nav-group-label { display: inline; padding-right: var(--sp-1); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; line-height: 1.3; white-space: nowrap; }
+  .client-shell .nav-group-label-single { display: inline-flex; align-items: center; padding: 0; color: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; }
+  .client-shell .tab { padding: var(--sp-1); font-size: var(--fs-md); line-height: 1.35; }
+  .client-shell .tab-external { font-size: var(--fs-md); }
+  .client-shell .tab-external-first { margin-left: 0; padding-left: var(--sp-1); }
+  .client-shell .tab-external-first::before { display: none; }
+  .client-shell .client-search input[type="search"] { width: 6rem; }
+}
+/* Flat navigation (no groups): keep the baseline under the links only, with regular tab padding. */
+@media (min-width: 64.0625rem) {
+  .client-shell .tabs:not(:has(> .nav-group)) { width: max-content; flex-wrap: nowrap; gap: var(--sp-2); }
+  .client-shell .tabs:not(:has(> .nav-group)) .tab { padding: var(--sp-2) var(--sp-3); }
+}
+
+/* Below the wide layout the shell falls back to the compact menu. While the
+   script re-measures after a resize, wrapping keeps that single frame from
+   overflowing the header; the open menu keeps its own column layout. */
+@media (max-width: 64rem) {
+  html:not([data-nav-compact]) .client-shell .tabs { flex-wrap: wrap; width: auto; }
+}
+
+/* Narrow screens and measured desktop overflow share one accessible menu.
+   Links stay in the DOM with their original URLs and permission guards. */
+html[data-nav-compact] .shell-navigation { flex: 0 1 auto; }
+html[data-nav-compact] .client-shell .client-logo { flex-basis: auto; flex-shrink: 0; }
+html[data-nav-compact] .shell-navigation-toggle { display: inline-flex; }
+html[data-nav-compact] .client-shell .tabs { display: none; }
+html[data-nav-compact] .client-shell[data-nav-open] .tabs { display: flex; position: absolute; top: 100%; left: calc(var(--rail-current) + var(--sp-3)); right: var(--sp-3); z-index: 1; max-width: 28rem; max-height: 60dvh; overflow-y: auto; flex-direction: column; align-items: stretch; gap: var(--sp-1); padding: var(--sp-2); border: 1px solid var(--border); border-bottom: 2px solid var(--accent); border-radius: 0 0 var(--r-md) var(--r-md); background: var(--panel); box-shadow: var(--shadow-lift); }
+html[data-nav-compact] .client-shell .nav-group { display: flex; flex-direction: column; gap: 0; }
+html[data-nav-compact] .client-shell .nav-group + .nav-group { border-top: 1px solid var(--border); margin-top: var(--sp-2); padding-top: var(--sp-2); }
+html[data-nav-compact] .client-shell .nav-group-label { display: block; padding: var(--sp-2) var(--sp-3); color: var(--text); font-size: var(--fs-md); font-weight: 600; }
+html[data-nav-compact] .client-shell .nav-group-label-single { display: block; padding: 0; color: inherit; font-size: inherit; font-weight: inherit; }
+html[data-nav-compact] .client-shell .tab { min-height: 40px; padding: var(--sp-2) var(--sp-3); white-space: normal; }
+html[data-nav-compact] .client-shell .tab-external-first { margin-left: 0; }
+html[data-nav-compact] .client-shell .tab-external-first::before { display: none; }
+@media (min-width: 64.0625rem) {
+  html[data-nav-compact] .client-shell[data-nav-open] .tabs { display: block; width: min(38rem, calc(100vw - var(--rail-current) - var(--sp-5))); max-width: none; max-height: 85dvh; columns: 2; column-gap: var(--sp-4); }
+  html[data-nav-compact] .client-shell .nav-group { break-inside: avoid; }
+  html[data-nav-compact] .client-shell[data-nav-open] .tabs:has(> a) { display: flex; columns: auto; }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  margin-bottom: var(--gap);
+}
+.toolbar .spacer { flex: 1; }
+
+/* ── Side rail (open clients, B-005) ─────────────────────────────────── */
+
+/* Fixed left column below the shell, shared by every page. Collapsed
+   (html[data-rail="closed"]) shrinks to a slim vertical strip on the left
+   edge: display:none would trap the rail closed (the toggle lives inside),
+   and a top bar was rejected in review: the handle belongs aside. On narrow
+   screens the open rail overlays the content and sits at the very top. */
+.open-clients-rail { position: fixed; top: var(--shell-h); left: 0; bottom: 0; width: var(--rail-w); z-index: 30; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--border); }
+html[data-rail="closed"] .open-clients-rail { width: 2.25rem; }
+html[data-rail="closed"] .rail-list { display: none; }
+.rail-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-4) var(--sp-4) var(--sp-3); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border-soft); }
+html[data-rail="closed"] .rail-head { flex-direction: column-reverse; justify-content: flex-start; align-items: center; gap: var(--sp-3); padding: var(--sp-4) 0 var(--sp-3); border-bottom: 0; }
+html[data-rail="closed"] .rail-head span { writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: .08em; }
+/* Toggle: a fixed square whose chevron is drawn with borders (no font
+   metrics, so it is centred by geometry). The text glyph set by app.js stays
+   in the DOM (hidden, font-size 0) for assistive tech and scripts; the head's
+   letter-spacing/uppercase would otherwise push it off-centre. */
+.rail-toggle { position: relative; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; padding: 0; background: none; border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--muted); cursor: pointer; font-size: 0; font-weight: 400; line-height: 1; letter-spacing: 0; text-transform: none; text-indent: 0; }
+.rail-toggle:hover { color: var(--text); }
+.rail-toggle::before { content: ""; position: absolute; top: 50%; left: 50%; width: .3125rem; height: .3125rem; border-left: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; transform: translate(calc(-50% + 1px), -50%) rotate(45deg); }
+.rail-toggle[aria-expanded="false"]::before { transform: translate(calc(-50% - 1px), -50%) rotate(-135deg); }
+.rail-list { list-style: none; margin: 0; padding: var(--sp-2) var(--sp-2) var(--sp-3); overflow-y: auto; flex: 1; }
+/* Two-line items (name over mono code), current client marked. */
+.rail-item { position: relative; display: flex; align-items: center; gap: 0; margin-bottom: 2px; border-radius: var(--r-md); }
+.rail-item:hover { background: var(--panel-2); }
+.rail-item-link { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: var(--sp-2) var(--sp-3); color: var(--text); text-decoration: none; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-item-link:hover { color: var(--accent); text-decoration: none; }
+.rail-dot { flex: none; width: .4rem; height: .4rem; border-radius: 50%; background: var(--muted); margin: 0 .125rem 0 var(--sp-3); }
+.rail-dot.is-ok { background: var(--ok-strong); }
+.rail-dot.is-err { background: var(--err-strong); }
+.rail-debt { flex: none; font: var(--fs-xs)/1.3 var(--font-data); color: var(--muted); margin-right: .125rem; }
+.rail-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-md); line-height: 1.3; }
+.rail-item-code { font: var(--fs-xs)/1.3 var(--font-data); color: var(--muted); }
+.rail-item:hover .rail-item-code, .rail-item.is-current .rail-item-code { color: var(--accent); }
+.rail-item.is-current { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.rail-item.is-current::before { content: ""; position: absolute; left: 0; top: var(--sp-2); bottom: var(--sp-2); width: 2px; border-radius: 2px; background: var(--accent); }
+.rail-item-close { background: none; border: 0; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: var(--btn-icon-sm); height: var(--btn-icon-sm); padding: 0; flex: none; border-radius: var(--r-sm); opacity: .6; font-size: var(--fs-sm); transition: opacity .15s, color .15s; }
+.rail-item:hover .rail-item-close, .rail-item-close:focus-visible { opacity: 1; }
+.rail-item-close:hover { color: var(--err); }
+.rail-empty { padding: var(--sp-2); font-size: var(--fs-sm); }
+/* Session footer: pinned under the independently scrolling list. */
+.rail-session { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); margin: 0; margin-top: auto; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--border-soft); }
+.rail-session .rail-logout { flex: 1 1 100%; white-space: nowrap; }
+.rail-session .session-user { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-session .rail-preferences { font-size: var(--fs-sm); color: var(--muted); text-decoration: none; }
+.rail-session .rail-preferences:hover { color: var(--text); text-decoration: underline; }
+.rail-preferences-icon { display: none; }
+/* Collapsed, or with no client list to show: the rail is a slim strip with icon-only session controls. */
+html:has(.open-clients-rail.rail-session-only) { --rail-current: var(--rail-w-closed); }
+.open-clients-rail.rail-session-only { width: var(--rail-w-closed); }
+html[data-rail="closed"] .rail-session .rail-preferences-text, .rail-session-only .rail-preferences-text { display: none; }
+html[data-rail="closed"] .rail-preferences-icon, .rail-session-only .rail-preferences-icon { display: inline-flex; }
+.rail-logout-icon { display: none; }
+html[data-rail="closed"] .rail-session, .rail-session-only .rail-session { flex-direction: column; justify-content: center; padding: var(--sp-3) 0; }
+html[data-rail="closed"] .rail-session .session-user, html[data-rail="closed"] .rail-logout-text, .rail-session-only .session-user, .rail-session-only .rail-logout-text { display: none; }
+html[data-rail="closed"] .rail-logout, .rail-session-only .rail-logout { flex: none; padding: 0; width: var(--btn-icon-sm); height: var(--btn-icon-sm); display: inline-flex; align-items: center; justify-content: center; }
+html[data-rail="closed"] .rail-logout-icon, .rail-session-only .rail-logout-icon { display: inline-flex; }
+@media (max-width: 56.25rem) {
+  html[data-rail="open"] .open-clients-rail { top: 0; }
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent-2); border-color: transparent; color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-2-hover); border-color: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.ghost { background: none; }
+/* Icon-only buttons: fixed square size; the single icon centers via .btn flex. */
+.btn.btn-icon { padding: 0; width: var(--btn-icon); height: var(--btn-icon); flex: none; }
+.btn.btn-icon-sm { padding: 0; width: var(--btn-icon-sm); height: var(--btn-icon-sm); flex: none; }
+/* Destructive confirmations (baja): red, never the green primary. */
+.btn.danger { color: var(--err); background: color-mix(in srgb, var(--err) 16%, var(--panel-2)); border-color: color-mix(in srgb, var(--err) 45%, transparent); font-weight: 600; }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--err) 26%, var(--panel-2)); border-color: var(--err); }
+/* Light theme: --err on its own tint is 4.28:1 (3.65:1 on hover); a darker ink clears WCAG AA. */
+html[data-theme="light"] .btn.danger { color: var(--err-ink); }
+
+/* Back affordance. The "←" character falls back to a dash glyph in the shipped
+   font stack (it rendered as "— Buscador"), so the arrow is an inline SVG. */
+.btn-back { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.btn-back .icon-back { width: .75rem; height: .75rem; flex: 0 0 auto; }
+
+/* ── Cards / metrics ─────────────────────────────────────────────────── */
+
+.cards {
+  display: grid;
+  /* 340px keeps a label plus a 22px money amount on one line: at 260px the
+     amount wrapped mid-token (`$` alone on its line) instead of scrolling. */
+  grid-template-columns: repeat(auto-fit, minmax(min(21.25rem, 100%), 1fr));
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+/* Flat cards like the ficha: the header cell (padded, hairline border)
+   plus a padded body carry all the chrome — no lift, no shadow. */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  min-width: 0;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4);
+  margin: 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  background: transparent;
+}
+.card-body { padding: var(--sp-4); }
+
+.metric { margin-bottom: var(--sp-3); }
+.metric:last-child { margin-bottom: 0; }
+.metric .val {
+  font-family: var(--font-data);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+}
+.metric .val.small { font-size: var(--fs-lg); }
+.metric .sub { display: block; color: var(--muted); font-size: var(--fs-sm); }
+
+/* ── Verdict rail — the one element that must win the first glance ───── */
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--gap) * 1.25);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-4);
+  margin-bottom: var(--gap);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+.rail.is-ok   { --rail-color: var(--ok);   border-left-color: var(--ok);   background: color-mix(in srgb, var(--ok)   12%, var(--panel-2)); }
+.rail.is-err  { --rail-color: var(--err);  border-left-color: var(--err);  background: color-mix(in srgb, var(--err)  12%, var(--panel-2)); }
+.rail.is-warn { --rail-color: var(--warn); border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--panel-2)); }
+.rail.is-info { --rail-color: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+
+.rail-verdict { display: flex; align-items: center; gap: var(--sp-2); }
+.rail-money { display: flex; align-items: flex-start; gap: var(--sp-5); flex-wrap: wrap; }
+.rail-meta { margin-left: auto; display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--rail-color, var(--text));
+}
+.verdict::before {
+  content: "";
+  width: .625rem;
+  height: .625rem;
+  border-radius: 50%;
+  background: var(--rail-color, var(--muted));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--rail-color, var(--muted)) 22%, transparent);
+}
+
+.money { display: flex; flex-direction: column; gap: 2px; }
+.money .amount {
+  font-family: var(--font-data);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.05;
+}
+.money .amount.secondary {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--muted);
+}
+.money.is-due .amount, .amount.is-due { color: var(--err); }
+.money.is-pending .amount, .amount.is-pending { color: var(--warn); }
+.money.is-clear .amount, .amount.is-clear { color: var(--ok); }
+.money.is-warn .amount, .amount.is-warn { color: var(--warn); }
+
+/* Statement totals reuse the money blocks without the rail's padding. */
+.statement-summary { margin-bottom: var(--sp-3); }
+.statement-copy { margin: 0 0 var(--sp-3); }
+
+/* ── Action dialog content (cancellation, reconnect, ticket history) ──── */
+
+.ticket-history-panel { display: grid; gap: var(--sp-3); }
+.cancellation-preview { display: grid; gap: var(--sp-2); }
+.cancellation-history { margin: 0 0 var(--sp-3); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--panel-2); }
+.cancellation-history summary { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); cursor: pointer; font-weight: 600; }
+.cancellation-history summary::after { content: '▸'; color: var(--muted); }
+.cancellation-history[open] summary::after { content: '▾'; }
+.cancellation-history .flow-steps { margin: 0; padding: 0 var(--sp-3) var(--sp-3) var(--sp-3); }
+.cancellation-preview dt { font-weight: 600; }
+.cancellation-preview dd { margin: 0; overflow-wrap: anywhere; }
+.customer-cancellation input, .customer-cancellation select, .customer-reconnect input, .customer-enable input { width: 100%; min-width: 0; box-sizing: border-box; }
+.customer-cancellation [data-cancellation-result], .customer-reconnect [data-reconnect-result], .customer-enable [data-enable-result] { overflow-wrap: anywhere; }
+.flow-steps { margin: var(--sp-2) 0; padding-left: var(--sp-4); }
+.customer-cancellation .is-ok, .customer-reconnect .is-ok, .customer-enable .is-ok { color: var(--ok); }
+.customer-cancellation .is-err, .customer-reconnect .is-err, .customer-enable .is-err { color: var(--err); font-weight: 600; }
+.customer-cancellation .is-warn, .customer-reconnect .is-warn, .customer-enable .is-warn { color: var(--warn); }
+.customer-cancellation .is-muted, .customer-reconnect .is-muted, .customer-enable .is-muted { color: var(--muted); }
+.step-indicator { display: flex; gap: var(--sp-2); align-items: center; margin: 0 0 var(--sp-2); padding: 0; list-style: none; font-size: var(--fs-xs); color: var(--muted); }
+.step-indicator .step-num { margin-right: .1em; }
+.step-indicator .step-arrow { margin-right: var(--sp-2); }
+.step-indicator li[aria-current="step"] { color: var(--text); font-weight: 600; }
+.flow-mark { display: inline-block; min-width: 1em; margin-right: .4em; font-weight: 700; }
+.customer-cancellation button:disabled, .customer-reconnect button:disabled, .customer-enable button:disabled { opacity: .55; cursor: not-allowed; }
+.ticket-history-dates { display: grid; gap: var(--sp-3); }
+.ticket-history-dates input { width: 100%; min-width: 0; box-sizing: border-box; }
+.listing-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-block: var(--sp-3);
+  padding-block: var(--sp-2);
+}
+.ticket-history-pagination { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.ticket-history button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Ticket detail keeps the summary, edit form and thread within easy reach. */
+.ticket-detail-compact .rail { padding: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); }
+.ticket-detail-compact .section-title { margin-block: var(--sp-2); }
+.ticket-detail-compact .cards { grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.ticket-detail-compact .card-header { padding: var(--sp-2) var(--sp-3); }
+.ticket-detail-compact .card-body { padding: var(--sp-2) var(--sp-3); }
+.ticket-detail-compact .kv-row { padding: var(--sp-1) 0; gap: var(--sp-2); }
+.ticket-detail-compact .kv-v { min-width: 0; }
+.ticket-detail-compact > .card { margin-bottom: var(--sp-2); }
+.ticket-detail-compact .ticket-id-copy { cursor: pointer; padding: var(--sp-1) var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel-2); color: var(--text); }
+
+/* ── Key/value blocks ────────────────────────────────────────────────── */
+
+.kv { display: grid; gap: 0; }
+.kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.kv-row:last-child { border-bottom: 0; }
+.kv-k {
+  font-size: var(--fs-md);
+  letter-spacing: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.kv-v {
+  font-family: var(--font-data);
+  font-size: var(--fs-md);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.kv-v.big { font-size: var(--fs-xl); font-weight: 600; }
+
+/* ── Copy affordance (R3) ────────────────────────────────────────────── */
+
+.copiable { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.btn-copy {
+  padding: 2px var(--sp-2);
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--muted);
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-copy:hover { color: var(--text); border-color: var(--accent); }
+.btn-copy.copied { color: var(--ok); border-color: var(--ok); }
+.btn-copy.copy-failed { color: var(--err); border-color: var(--err); }
+
+/* Click-to-copy values: a copy cursor, text colour and a dotted accent underline on hover, confirmed by a toast. */
+[data-copy]:not([hidden]) { cursor: copy; transition: color .12s ease; }
+[data-copy]:not([hidden]):hover { color: var(--text); }
+[data-copy]:not([hidden]):hover .kv-v { color: var(--text); text-decoration: underline dotted var(--accent); text-underline-offset: 3px; }
+.status-toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--sp-5);
+  z-index: 1000;
+  padding: var(--sp-2) var(--sp-4);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ok);
+  background: var(--panel-3);
+  border: 1px solid var(--ok);
+  border-radius: var(--r-pill);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, .5rem);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.status-toast.is-error { color: var(--err); border-color: var(--err); }
+.status-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── KPI stats ───────────────────────────────────────────────────────── */
+
+.stat { display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-3); }
+.stat-num {
+  font-family: var(--font-data);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1;
+}
+.stat-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+}
+.stat.is-empty { color: var(--muted); }
+.stat.is-empty .stat-num { font-size: var(--fs-xl); color: var(--muted); }
+/* Keep the chip rows in a KPI card separated instead of touching. */
+.card-body .kv + .chips,
+.card-body .chips + .chips { margin-top: var(--sp-2); }
+
+/* ── Chips / badges / notices ────────────────────────────────────────── */
+
+.chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.chip, .badge {
+  --badge-color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-2);
+  border: 0;
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--badge-color);
+  background: var(--panel-3);
+}
+.chip.ok,    .badge.ok    { --badge-color: var(--ok);    background: var(--ok-tint); }
+.chip.warn,  .badge.warn  { --badge-color: var(--warn);  background: var(--warn-tint); }
+.chip.err,   .badge.err   { --badge-color: var(--err);   background: var(--err-tint); }
+.chip.info,  .badge.info  { --badge-color: var(--blue);  background: var(--info-tint); }
+/* The live ping chip is rendered for the swap fragment only; no page shows it. */
+.customer-live-ping { display: none; }
+
+.notice, .banner {
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--gap);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+}
+.notice.warn { border-left-color: var(--warn); }
+.notice.ok   { border-left-color: var(--ok); }
+.notice.err  { border-left-color: var(--err); }
+.notice.muted { color: var(--muted); }
+/* Error and refusal pages keep the card's type: an inner h1 must not bring the
+   browser's 2em default into a header or a notice. */
+.notice > h1, .card-header > h1 { font: inherit; margin: 0; letter-spacing: inherit; }
+/* The auth warning sits above main, so it takes the same rail offset
+   (and, being declared after .notice, replaces its bottom margin). */
+.auth-notice { margin: var(--sp-4) var(--page-gutter) 0 calc(var(--rail-current) + var(--page-gutter)); }
+
+/* ── Forms ──────────────────────────────────────────────────────────── */
+
+input[type="search"], input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input[type="datetime-local"], select, textarea {
+  padding: var(--sp-2) var(--sp-3);
+  font: inherit;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+/* The 17.5rem floor belongs to search inputs only: pinned selects (e.g. the
+   ticket filter bar) wrap onto several lines and waste a whole row. */
+input[type="search"] { min-width: 17.5rem; }
+input[type="date"], input[type="datetime-local"] {
+  color-scheme: inherit;
+  min-height: 2.5rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+/* Ticket form: labelled controls on a responsive grid, no inline styles. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.field-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+}
+.field select { min-width: 0; width: 100%; }
+/* Ticket detail modal edit form: fixed 3-column grid, collapsing on
+   very narrow viewports. */
+.form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 23.75rem) {
+  .form-grid-3 { grid-template-columns: 1fr; }
+}
+.form-textarea { width: 100%; margin: 0 0 var(--sp-3); }
+
+.section-title {
+  margin: 0 0 var(--gap);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.comment-box {
+  padding: var(--sp-3) var(--sp-3);
+  margin-bottom: var(--sp-2);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────── */
+
+/* One capped scroll box for every table. The box is the scrollport, so the
+   sticky header below stays in view while the rows move under it, and a long
+   list never pushes the page itself into a scroll monster. Horizontal overflow
+   stays as the fallback for very narrow screens. */
+.table-scroll { overflow: auto; max-height: 70vh; }
+
+/* Row that navigates on click: an accent bar advertises the affordance. */
+.row-link { cursor: pointer; }
+tbody tr.row-link:hover td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Account statement: invoices tinted red, payments tinted green. The tint is
+   a soft secondary signal; the left accent bar is the primary one. */
+tbody tr.fila-factura td { background: color-mix(in srgb, var(--err) 10%, transparent); }
+tbody tr.fila-pago    td { background: color-mix(in srgb, var(--ok)  10%, transparent); }
+tbody tr.fila-factura td:first-child { box-shadow: inset 3px 0 0 var(--err); }
+tbody tr.fila-pago    td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+tbody tr.fila-factura:hover td { background: color-mix(in srgb, var(--err) 16%, var(--panel-2)); }
+tbody tr.fila-pago:hover    td { background: color-mix(in srgb, var(--ok)  16%, var(--panel-2)); }
+/* A credit note is not a charge, so it never borrows the red invoice tint. */
+tbody tr.fila-nota td { background: var(--info-tint); }
+tbody tr.fila-nota td:first-child { box-shadow: inset 3px 0 0 var(--blue); }
+tbody tr.fila-nota:hover td { background: color-mix(in srgb, var(--blue) 24%, var(--panel-2)); }
+/* The annulled invoice stays visible but muted, so the pair is auditable. */
+tbody tr.fila-anulada td { color: var(--muted); }
+tbody tr.fila-anulada:hover td { color: var(--text); }
+tbody tr.fila-apertura td { color: var(--muted); font-style: italic; }
+tbody tr.fila-apertura:hover td { color: var(--text); }
+td.num, th.num { text-align: right; }
+td.cell-wrap { white-space: normal; min-width: 14rem; }
+/* Long descriptions wrap so the statement fits its card instead of scrolling sideways. */
+.statement-table td.statement-desc, .statement-table th.statement-desc { white-space: normal; overflow-wrap: anywhere; min-width: 10rem; }
+.mono { font-family: var(--font-data); }
+.muted { color: var(--muted); }
+/* The IP is the operator's primary handle on a row: data font already, bolder. */
+/* Count line under a results table: a class instead of an inline margin. */
+.table-note { margin-top: var(--sp-2); }
+
+/* ── States ──────────────────────────────────────────────────────────── */
+
+.empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+}
+
+.empty .empty-state-icon { display: block; margin-bottom: var(--sp-3); font-size: var(--fs-2xl); opacity: .5; }
+
+.htmx-request .spinner { display: inline-block; }
+.spinner {
+  display: none;
+  width: .75rem; height: .75rem;
+  margin-left: var(--sp-2);
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* N3: skeleton blocks (cuenta statement) and the antenna query overlay.
+   Plain keyframe opacity pulse: the global prefers-reduced-motion block
+   already turns it into a static soft block. */
+.skeleton { background: var(--panel-2); border-radius: var(--r-sm); animation: skeleton-shimmer 1.4s ease-in-out infinite alternate; }
+.cuenta-skeleton { padding: var(--sp-1) 0; }
+.skeleton-row { display: block; height: .6rem; width: 100%; }
+.skeleton-row-lg { width: 85%; }
+.skeleton-row-sm { width: 55%; }
+@keyframes skeleton-shimmer { from { opacity: .55; } to { opacity: 1; } }
+.antenna-metrics.antenna-query-busy .antenna-measurements::after { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--panel-2) 60%, transparent); animation: skeleton-shimmer 1.4s ease-in-out infinite alternate; }
+
+/* N4: degrading-signal dot on the Técnica tab (warn minor, err weak). */
+.customer-tab .tab-dot { display: inline-block; width: .55em; height: .55em; margin-left: .35em; border-radius: 50%; background: var(--warn-strong); vertical-align: middle; }
+.customer-tab .tab-dot.is-err { background: var(--err-strong); }
+/* Pulse of the customer status dot (used by the customer block below). */
+@keyframes client-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 50%, transparent); } 70% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--ok) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent); } }
+
+/* ── Modals ──────────────────────────────────────────────────────────── */
+
+/* Component display rules (.btn, .modal-foot, ...) must never defeat the
+   hidden attribute — the baja modal gates its action buttons with it. */
+[hidden] { display: none !important; }
+
+/* Native <dialog> modal chrome — a shared primitive for every shell
+   (ticket compose/detail from B-003, client search from B-004). */
+.modal { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: var(--r-lg); padding: 0; width: min(var(--modal-md), calc(100vw - 1.5rem)); max-width: none; display: none; flex-direction: column; max-height: calc(100vh - 1.5rem); overflow: hidden; }
+.modal.modal-sm { width: min(var(--modal-sm), calc(100vw - 1.5rem)); }
+.modal.modal-lg { width: min(var(--modal-lg), calc(100vw - 1.5rem)); }
+.modal::backdrop { background: var(--backdrop); }
+/* Author display rules override the browser's closed-dialog default. */
+.modal[open] { display: flex; animation: modal-in .15s ease-out; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(8px); } }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4); border-bottom: 1px solid var(--border-soft); }
+.modal-head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
+.modal-body { flex: 1 1 auto; min-height: 0; padding: var(--sp-4); overflow: auto; overscroll-behavior: contain; }
+.modal-foot { display: flex; flex-wrap: wrap; flex: none; align-items: center; justify-content: flex-end; gap: var(--sp-3); padding: var(--sp-4); border-top: 1px solid var(--border-soft); }
+/* Footer lives inside the scrollable body: keep it visible while content scrolls. */
+.modal-body .modal-foot { position: sticky; bottom: calc(-1 * var(--sp-4)); margin: 0 calc(-1 * var(--sp-4)); background: var(--panel); }
+.modal-foot .btn { white-space: normal; }
+
+/* Installation booking only: customer then fiscal/ticket keyboard order. */
+#installation-booking { width: min(var(--modal-lg), calc(100vw - 1.5rem)); }
+#installation-booking .installation-form { display: grid; gap: var(--sp-3); }
+#installation-booking .installation-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); }
+#installation-booking .installation-group { display: grid; align-content: start; gap: var(--sp-2); min-width: 0; }
+#installation-booking .field { min-width: 0; }
+#installation-booking input, #installation-booking textarea { width: 100%; min-width: 0; }
+#installation-booking input[type="tel"] { padding: var(--sp-2) var(--sp-3); font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); }
+#installation-booking input[type="tel"]:focus { border-color: var(--accent); }
+#installation-booking .installation-note { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+#installation-booking .installation-form .installation-note { margin: 0; }
+#installation-booking .modal-foot { z-index: 1; }
+@media (max-width: 37.5rem) {
+  #installation-booking .installation-columns { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+  #installation-booking .modal-foot .btn { width: 100%; }
+}
+
+/* Client search modal (B-004): big input, filter chips, one row per result. */
+.search-input { width: 100%; box-sizing: border-box; padding: var(--sp-3) var(--sp-4); font-size: var(--fs-lg); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text); }
+.search-input:focus { border-color: var(--accent); }
+.chip-row { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-3); }
+.chip-row .chip { cursor: pointer; font-family: inherit; }
+/* The page layer re-declares the active chip: `.client-detail .chip` (pages) would otherwise beat this rule. */
+.chip-row .chip.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.search-list { margin-top: var(--sp-3); max-height: min(46vh, 26.25rem); overflow: auto; border-top: 1px solid var(--border-soft); }
+.search-rows { display: flex; flex-direction: column; }
+.search-row { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-2); border-bottom: 1px solid var(--border-soft); color: inherit; text-decoration: none; }
+.search-row:hover { background: var(--panel-2); }
+.search-row-id { font-weight: 600; }
+.search-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-row-meta { display: flex; align-items: center; gap: var(--sp-2); flex-shrink: 0; }
+.search-row-link { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.search-row-link:hover { text-decoration: none; }
+.search-row-pin { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: var(--sp-1) var(--sp-2); border: none; background: none; color: var(--muted); font: inherit; line-height: 1; cursor: pointer; border-radius: var(--r-sm); }
+.search-row-pin:hover, .search-row-pin:focus-visible { color: var(--accent); }
+/* Un-searched empty state: shortcut hints next to the search copy. */
+.search-hint { display: block; margin-top: var(--sp-2); color: var(--muted); font-size: var(--fs-xs); }
+.search-hint kbd { display: inline-block; padding: 0 var(--sp-2); margin: 0 .125rem; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--panel-2); font-family: var(--font-data); font-size: .8125em; line-height: 1.5; }
+
+/* ── Antenna card (shared with the swap fragment) ────────────────────── */
+
+/* Antenna card admin controls (B-001/B-002): segmented family toggle and
+   inline port editor, sized to match the .btn controls around them. */
+.family-switch { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.family-switch form { display: inline-flex; margin: 0; overflow: hidden; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.family-label { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); color: var(--muted); }
+.family-opt { border: 0; padding: var(--sp-2) var(--sp-4); font: inherit; font-weight: 600; cursor: pointer; background: transparent; color: var(--muted); }
+.family-opt.family-airmax { border-right: 1px solid var(--border); }
+.family-opt:hover:not(:disabled) { background: var(--panel-3); color: var(--text); }
+.family-opt.is-active.family-airmax { background: var(--blue); color: var(--bg); }
+.family-opt.is-active.family-ac { background: var(--accent); color: var(--bg); }
+.family-opt:disabled { cursor: default; opacity: 1; }
+.family-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Inline management-port editor (B-002): current value, numeric field and
+   the explicit "back to the HTTPS/1431 default" action. */
+.port-editor { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.port-editor form { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: 0; }
+.port-editor .port-label { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); color: var(--muted); }
+.port-editor .port-current { color: var(--text); font-family: var(--font-data); font-size: var(--fs-md); }
+.port-editor input[type="number"] { width: 5.5rem; min-width: 0; }
+
+/* Wrappers preserve the shared antenna grid outside customer detail. */
+.antenna-diagnostics { display: block; grid-column: 1 / -1; }
+.antenna-diagnostics > summary { cursor: pointer; padding: var(--sp-1) 0; }
+.antenna-diagnostics > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Compact measured link: one shared Mbps scale, never a health percentage. */
+.antenna-measurements { grid-column: 1 / -1; min-width: 0; overflow-wrap: break-word; }
+/* N3: query overlay anchored on the values section; base rule stays the wrap contract. */
+.antenna-metrics.antenna-query-busy .antenna-measurements { position: relative; overflow: hidden; }
+/* Local / Remote link cards (replace the comparison table). */
+.antenna-link-caption { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); color: var(--muted); }
+.link-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+@media (max-width: 37.5rem) { .link-cards { grid-template-columns: minmax(0, 1fr); } }
+.link-card { min-width: 0; padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--panel-2); }
+.link-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.link-card-title { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .12em; color: var(--muted); }
+.link-card-eth { padding: 2px var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-sm); font: var(--fs-xs) var(--font-data); color: var(--muted); }
+.link-card-signal { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.link-card-dbm { font: 600 var(--fs-lg) var(--font-data); color: var(--text); font-variant-numeric: tabular-nums; }
+.sig-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 1rem; }
+.sig-bars i { display: block; width: .25rem; border-radius: 1px; background: var(--border); }
+.sig-bars i:nth-child(1) { height: 7px; }
+.sig-bars i:nth-child(2) { height: 10px; }
+.sig-bars i:nth-child(3) { height: 13px; }
+.sig-bars i:nth-child(4) { height: 16px; }
+.sig-bars.sig-ok i.on { background: var(--ok-strong); }
+.sig-bars.sig-warn i.on { background: var(--warn-strong); }
+.sig-bars.sig-err i.on { background: var(--err-strong); }
+.link-quality { font-size: var(--fs-xs); letter-spacing: .06em; text-transform: uppercase; }
+.link-quality.ok { color: var(--ok); }
+.link-quality.warn { color: var(--warn); }
+.link-quality.err { color: var(--err); }
+.link-card-capacity { margin-bottom: var(--sp-3); }
+.link-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-1) 0; font-size: var(--fs-md); }
+.link-k { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.link-v { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.link-card-capacity .link-v { font-weight: 600; }
+.link-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--sp-4); margin: 0; }
+.link-grid .link-row { border-top: 1px dashed var(--border-soft, var(--border)); }
+.antenna-measurements-bar { display: block; height: .3125rem; margin-top: var(--sp-1); background: var(--border-soft); border-radius: 3px; overflow: hidden; }
+.antenna-measurements-fill { display: block; height: 100%; background: var(--accent); }
+.antenna-measurements p, .antenna-diagnostics p { font-size: var(--fs-sm); line-height: 1.5; }
+.antenna-measurements > p { margin: var(--sp-2) 0; color: var(--warn); }
+
+/* Outside the customer page the fragment is one plain column: the outcome
+   notice reads before the action buttons. (On the customer page the grid
+   places both explicitly, so `order` must not apply there.) */
+body:not(.client-detail) .antenna-metrics > .notice { order: 5; }
+body:not(.client-detail) .antenna-actions { order: 6; }
+
+/* The swap fragment has no customer context, so the labels are split in two:
+   the customer page swaps which one is visible (see the pages layer). */
+.customer-label { display: none; }
+
+/* ── Page footer ─────────────────────────────────────────────────────── */
+
+footer.meta {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+/* Machine timestamps are unbreakable mono strings: break them anywhere
+   instead of letting the footer force the page wider. */
+footer.meta span { overflow-wrap: anywhere; }
+
+}
+
+/* ═══ utilities ═══════════════════════════════════════════════════════════ */
+/* Only state rules that must beat any component or page rule (hidden, closed
+   disclosure, rail offset, reduced motion); ordinary styling lives in the
+   components and pages layers (a test pins the allowed selectors). Declared before the
+   customer block only so that block stays `.client-detail`-scoped to the end
+   of the file (the NetMap isolation contract); layer order is set at the top. */
+@layer utilities {
+/* Once the inline script in base.html has set the rail state, the content
+   offset beats any page padding (the rail is fixed, so main must clear it). */
+html[data-rail="open"] main,
+html[data-rail="closed"] main { padding-left: calc(var(--rail-current) + var(--page-gutter)); }
+/* The page behind an open modal stays put. */
+html:has(dialog[open]) { overflow: hidden; }
+/* Operators who ask for less motion get none; !important so no component
+   animation or transition can opt back in. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+.search-row[hidden] { display: none; }
+.client-detail .antenna-metrics[hidden],
+.client-detail [data-ticket-state][hidden],
+.client-detail [data-ticket-filter-empty][hidden],
+.client-detail .customer-panel[hidden] { display: none; }
+/* Native disclosure stays closed by default: nothing but the summary shows. */
+.antenna-diagnostics:not([open]) > :not(summary),
+.client-detail .connection-details:not([open]) > :not(summary) { display: none; }
+}
+
+/* ═══ pages ═══════════════════════════════════════════════════════════════ */
+@layer pages {
+
+/* Customer NetMap: tokens from sibling frontend/src/assets/global.css;
+   compact cards, navigation and status dots from base-components.css.
+   Scope deliberately excludes the shared shell and all other pages. */
+.client-detail {
+  --bg: #0d0f14;
+  --panel: #12151c;
+  --panel-2: #181c26;
+  --panel-3: #1e2330;
+  --border: rgba(255, 255, 255, .14);
+  --border-soft: rgba(255, 255, 255, .07);
+  --text: #e8eaf0;
+  --muted: #8b90a0;
+  --accent: #1d9e75;
+  --accent-2: #116b52;
+  --ok: #5dcaa5;
+  --warn: #fac775;
+  --err: #f09595;
+  --blue: #85b7eb;
+  --gap: 1rem;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-data: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --content-max: 90rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-md);
+}
+/* The dark NetMap contract above remains intact. In light mode the body
+   inherits the shared palette from html, including the shell and dialogs. */
+.client-detail:where(html[data-theme="light"] *) {
+  --bg: inherit;
+  --panel: inherit;
+  --panel-2: inherit;
+  --panel-3: inherit;
+  --border: inherit;
+  --border-soft: inherit;
+  --text: inherit;
+  --muted: inherit;
+  --accent: inherit;
+  --accent-2: inherit;
+  --ok: inherit;
+  --warn: inherit;
+  --err: inherit;
+  --blue: inherit;
+}
+.client-detail main { padding: var(--sp-5) var(--sp-5) 3.75rem; }
+@media (max-width: 56.25rem) {
+  .client-detail main { padding: var(--sp-4); }
+}
+.client-detail #customer-body { font-size: var(--fs-md); line-height: 1.45; }
+/* Keep the identity on its own line; the saved balance shares the code row. */
+.client-detail .rail-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
+.client-detail .rail-item-link { grid-column: 2; padding-right: 0; }
+.client-detail .rail-item-close { grid-column: 3; grid-row: 1; align-self: start; }
+.client-detail .rail-debt { position: absolute; right: var(--sp-2); bottom: var(--sp-2); }
+
+/* Rounded header panel: status pill + actions on top, identity below.
+   No overflow clipping here: the "⋯" menu has to paint past the card, so the
+   two children that need rounded corners carry them themselves (.client-bar
+   and .rail, which already sets its own radius). */
+.client-detail .client-header { position: relative; padding: 0; border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: var(--sp-4); background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: var(--shadow-header); }
+.client-detail .client-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--hairline-faint); }
+.client-detail .info-dot { display: inline-flex; align-items: center; color: var(--muted); cursor: help; font-size: var(--fs-md); vertical-align: text-bottom; }
+.client-detail .client-bar [data-customer-status] { display: inline-flex; align-items: center; gap: var(--sp-2); width: auto; margin: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent); border-radius: var(--r-pill); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--muted); font-size: var(--fs-sm); }
+.client-detail .client-bar [data-customer-status]::before { content: ""; flex: none; width: .4375rem; height: .4375rem; border-radius: 50%; background: var(--ok); animation: client-pulse 2s 3; }
+.client-detail .client-bar [data-customer-status].warn { border-color: color-mix(in srgb, var(--warn-strong) 35%, transparent); background: color-mix(in srgb, var(--warn-strong) 8%, transparent); color: var(--warn); }
+.client-detail .client-bar [data-customer-status].warn::before { background: var(--warn-strong); animation: none; }
+.client-detail .client-title-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--sp-3); margin-bottom: 0; }
+.client-detail .client-header .client-title-row { padding: var(--sp-4); }
+.client-detail .client-title-row > div:first-child { min-width: 0; flex: 1 1 16.25rem; font-size: var(--fs-md); }
+.client-detail .client-name { margin: 0; font-size: var(--fs-xl); font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 37.5rem) {
+  .client-detail .client-title-row { align-items: flex-start; flex-direction: column; }
+}
+/* Identity block: initials avatar + ID/IP as chips. */
+.client-detail .client-identity { display: flex; align-items: center; gap: var(--sp-4); }
+.client-detail .client-identity-text { min-width: 0; }
+.client-detail .client-avatar { flex: none; width: 3.5rem; height: 3.5rem; display: grid; place-items: center; border-radius: var(--r-lg); font-size: var(--fs-xl); font-weight: 700; color: var(--text); background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 70%, var(--bg)), var(--accent-2) 55%, var(--accent)); box-shadow: var(--shadow-inset-hi); }
+.client-detail .client-id { display: inline-flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-1) var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); font: var(--fs-sm) var(--font-data); color: var(--muted); background: var(--panel-2); }
+.client-detail .client-id + .client-id { margin-left: var(--sp-2); }
+.client-detail .client-id:hover { color: var(--text); border-color: var(--accent); }
+
+/* ── Header actions ─────────────────────────────────────────────────── */
+
+.client-detail .quick-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-2); margin-left: auto; min-width: 0; max-width: 100%; }
+@media (max-width: 56.25rem) {
+  .client-detail .quick-actions { width: 100%; }
+}
+.client-detail .quick-actions > .btn { position: relative; }
+.client-detail .quick-actions .btn.btn-icon { display: inline-flex; align-items: center; gap: var(--sp-2); width: auto; padding: 0 var(--sp-3); }
+.client-detail .quick-actions .customer-action-icon { width: 1.25rem; height: 1.25rem; flex: none; }
+.client-detail .quick-actions [data-customer-refresh] { color: var(--muted); }
+/* NetMap danger / warning hues (the saturated ones behind the .chip.err / .chip.warn tints). */
+.client-detail .quick-actions .customer-action-cancel { color: var(--err-strong); }
+.client-detail .quick-actions .customer-action-reconnect { color: var(--warn-strong); }
+.client-detail .quick-actions .customer-action-enable { color: var(--ok); }
+.client-detail .quick-actions .btn { font-size: var(--fs-md); border-radius: var(--r-md); white-space: normal; }
+.client-detail .quick-actions > .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.client-detail .wifi-actions > .btn { position: relative; }
+/* Instant tooltips for the icon-only buttons (app.js moves `title` to `data-tip`). */
+.client-detail [data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + var(--sp-2)); right: 0; z-index: 20; padding: var(--sp-1) var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface-tip); color: var(--text); font-size: var(--fs-xs); font-weight: 400; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(-.25rem); transition: opacity .15s, transform .15s; }
+.client-detail [data-tip]:hover::after, .client-detail [data-tip]:focus-visible::after { opacity: 1; transform: translateY(0); }
+@media (max-width: 37.5rem) { .client-detail [data-tip]::after { display: none; } }
+/* Overflow menu: risky actions (reconnect, cancel) need a deliberate second click. */
+.client-detail .action-menu { position: relative; }
+.client-detail .quick-actions .action-menu > summary { list-style: none; color: var(--muted); }
+.client-detail .action-menu > summary::-webkit-details-marker { display: none; }
+.client-detail .action-menu > summary:hover,
+.client-detail .action-menu[open] > summary { color: var(--text); border-color: var(--accent); }
+/* Anchored to the ⋯ button at every width: the button sits at the right end of
+   the row, so `right: 0` is what keeps the panel inside the viewport. A
+   narrow-viewport `left: 0` override pushed the whole menu past the right edge
+   (the header card used to hide that by clipping it). */
+.client-detail .action-menu-panel { position: absolute; top: calc(100% + var(--sp-2)); right: 0; z-index: 40; display: flex; flex-direction: column; gap: 2px; min-width: 15rem; padding: var(--sp-1); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-lift); }
+.client-detail .action-menu-item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-2) var(--sp-3); font: inherit; font-size: var(--fs-md); text-align: left; color: var(--text); background: none; border: 0; border-radius: var(--r-md); cursor: pointer; }
+.client-detail .action-menu-item:hover,
+.client-detail .action-menu-item:focus-visible { background: var(--panel-2); }
+.client-detail .action-menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.client-detail .quick-actions .customer-action-cancel:focus-visible { color: var(--err); }
+.client-detail .action-menu-item span { display: flex; flex-direction: column; gap: 1px; }
+.client-detail .action-menu-item small { font-size: var(--fs-xs); color: var(--muted); }
+.client-detail .action-menu-item .customer-action-icon { width: 1.125rem; height: 1.125rem; }
+.client-detail .action-menu-item.customer-action-cancel { border-top: 1px solid var(--border-soft); border-radius: 0 0 var(--r-md) var(--r-md); }
+.client-detail .btn-copy:not(.btn) { padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); font-size: var(--fs-xs); line-height: 1; font-weight: 400; font-family: var(--font-ui); }
+.client-detail .btn-copy.btn { color: var(--text); }
+
+/* ── Summary rail ───────────────────────────────────────────────────── */
+
+.client-detail .client-header .rail { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; align-items: stretch; gap: 0; padding: 0; margin: 0 0 var(--sp-4); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: none; }
+@media (max-width: 56.25rem) {
+  .client-detail .client-header .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; }
+}
+/* Summary rail lives inside the header panel: no own card, just a divider. */
+.client-detail .client-header .rail,
+.client-detail .client-header .rail.is-ok,
+.client-detail .client-header .rail.is-err,
+.client-detail .client-header .rail.is-warn { margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
+.client-detail .client-header .rail-money { display: contents; }
+.client-detail .client-header .rail-money > .chip { grid-column: 1 / -1; margin: var(--sp-2) var(--sp-4); justify-self: start; }
+.client-detail .client-header .rail-verdict > .chip { display: none; }
+.client-detail .client-header .rail-verdict { flex-direction: column; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-4) var(--sp-4); border-right: 1px solid var(--border-soft); margin: 0; min-width: 0; }
+.client-detail .client-header .rail-money > .money { padding: var(--sp-4) var(--sp-4); border-right: 1px solid var(--border-soft); margin: 0; min-width: 0; }
+.client-detail .client-header .rail-meta { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-4) var(--sp-4); border-right: 0; margin: 0; min-width: 0; font-size: var(--fs-md); color: var(--muted); }
+.client-detail .client-header .rail-meta strong { font-size: inherit; color: var(--text); }
+/* The plan price is a rail value like Deuda total: it must not inherit the
+   secondary scale of its own cell, only the plan name does. */
+.client-detail .client-header .rail-meta .amount { font: 600 var(--fs-xl)/1.45 var(--font-ui); color: var(--text); }
+/* Two columns: every cell draws a right and a bottom divider and the negative
+   margin pushes the outermost ones (last column, last row) outside the clipped
+   rail, so the dividers never depend on a cell's position or on the cell count. */
+@media (max-width: 56.25rem) {
+  .client-detail .client-header .rail-verdict,
+  .client-detail .client-header .rail-money > .money,
+  .client-detail .client-header .rail-meta { padding: var(--sp-3); margin: 0 -1px -1px 0; border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+}
+.client-detail .verdict:where(:not(.ticket-detail-compact *)) { gap: var(--sp-2); font: var(--fs-sm) var(--font-data); letter-spacing: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border-soft); border-radius: var(--r-pill); color: var(--muted); background: var(--panel-3); }
+.client-detail .verdict:where(:not(.ticket-detail-compact *))::before { width: .375rem; height: .375rem; background: currentColor; box-shadow: none; }
+.client-detail .client-header .rail .status-enabled .verdict { color: var(--ok); }
+.client-detail .client-header .rail .status-disabled .verdict { color: var(--err); }
+.client-detail .client-header .rail .verdict { font-family: var(--font-ui); border: 0; border-radius: var(--r-sm); background: none; padding: 0; font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; }
+.client-detail .client-header .rail-ping { font-size: var(--fs-md); color: var(--muted); }
+.client-detail .client-header .rail-ping .kv-k { font-size: var(--fs-md); }
+.client-detail .client-header .rail-meta .kv-k { font-size: var(--fs-md); }
+.client-detail .client-header .rail-ping .verdict { align-self: flex-start; white-space: normal; text-transform: none; }
+.client-detail .client-header .rail-ping .verdict.ok { color: var(--ok); }
+.client-detail .client-header .rail-ping .verdict.err { color: var(--err); }
+.client-detail .client-header .rail-ping .verdict.warn { color: var(--warn); }
+.client-detail .money { text-align: center; gap: 0; }
+.client-detail .money .amount { line-height: 1.4; }
+.client-detail .money.is-due .amount { color: var(--err); }
+.client-detail .money.is-pending .amount { color: var(--warn); }
+.client-detail .money.is-clear .amount { color: var(--ok); }
+.client-detail .money .kv-k { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .5px; }
+.client-detail .client-header .rail .money { text-align: left; gap: var(--sp-1); }
+.client-detail .client-header .rail .money .amount { font: 600 var(--fs-xl)/1.45 var(--font-ui); }
+.client-detail .client-header .rail .money .amount.secondary { color: var(--text); }
+.client-detail .client-header .rail .money.is-due .amount { color: var(--err); }
+.client-detail .client-header .rail .money.is-pending .amount { color: var(--warn); }
+.client-detail .client-header .rail .kv-k { font-size: var(--fs-sm); text-transform: none; letter-spacing: 0; }
+
+/* ── Chips ──────────────────────────────────────────────────────────── */
+
+.client-detail .chip, .client-detail .badge { --badge-color: var(--muted); display: inline-flex; align-items: center; gap: var(--sp-1); padding: var(--sp-1) var(--sp-2); border: 0; border-radius: var(--r-sm); font: var(--fs-sm)/1.45 var(--font-ui); color: var(--badge-color); background: var(--panel-3); }
+.client-detail .chip::before, .client-detail .badge::before { display: none; }
+.client-detail .chip-row .chip.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.client-detail .chip.ok, .client-detail .badge.ok, .client-detail .chip.antenna-current { --badge-color: var(--ok); background: var(--ok-tint); }
+.client-detail .chip.warn, .client-detail .badge.warn { --badge-color: var(--warn); background: var(--warn-tint); }
+.client-detail .chip.err, .client-detail .badge.err { --badge-color: var(--err); background: var(--err-tint); }
+.client-detail .chip.info, .client-detail .badge.info { --badge-color: var(--blue); background: var(--info-tint); }
+
+/* ── Cards and key/value rows ───────────────────────────────────────── */
+
+.client-detail .client-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); display: grid; gap: var(--sp-4); align-items: start; margin-bottom: var(--sp-4); }
+@media (max-width: 56.25rem) {
+  .client-detail .client-grid { grid-template-columns: 1fr; }
+}
+.client-detail .client-grid .card { margin-bottom: 0; }
+.client-detail .card { padding: 0; min-width: 0; border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: var(--sp-4); }
+.client-detail .card-header { padding: var(--sp-4) var(--sp-4); margin: 0; border-bottom: 1px solid var(--border-soft); font-size: var(--fs-lg); letter-spacing: 0; text-transform: none; color: var(--text); }
+@media (max-width: 37.5rem) {
+  .client-detail .card-header { flex-wrap: wrap; }
+}
+.client-detail .card-body { padding: var(--sp-4); }
+.client-detail .kv-v { font-size: var(--fs-md); font-weight: 500; }
+.client-detail .kv-row { padding: var(--sp-2) 0; align-items: center; }
+.client-detail td:first-child, .client-detail td.num { font-family: var(--font-data); }
+.client-detail .empty { padding: var(--sp-6); border: 0; font-size: var(--fs-lg); }
+.client-detail .empty-state-icon { font-size: var(--fs-2xl); margin-bottom: var(--sp-4); opacity: .5; }
+.client-detail #cuenta .empty { padding: var(--sp-4); }
+.client-detail .statement-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--sp-3); }
+.client-detail .statement-summary .money { text-align: left; }
+@media (max-width: 37.5rem) {
+  .client-detail .statement-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Contact card. */
+.client-detail .contact-card { scroll-margin-top: 5.625rem; }
+.client-detail .contact-card:target { border-color: var(--accent); }
+.client-detail .contact-card .kv-row { display: grid; grid-template-columns: 6.875rem minmax(0, 1fr); gap: var(--sp-2) var(--sp-3); border: 0; padding: var(--sp-1) 0; }
+.client-detail .contact-card .kv-v { font-family: var(--font-ui); text-align: left; }
+.client-detail [data-copy-label="Documento"] .kv-v,
+.client-detail [data-copy-label="Email"] .kv-v,
+.client-detail [data-copy-label="Teléfono"] .kv-v,
+.client-detail .contact-card .kv-row:last-child .kv-v { font-family: var(--font-data); }
+.client-detail .contact-card .card-header + .card-body .kv-row:last-child { border: 0; }
+.client-detail .contact-continuation { margin-top: 0; padding-top: 0; }
+@media (max-width: 56.25rem) {
+  .client-detail .contact-card .kv-row { grid-template-columns: 5.625rem minmax(0, 1fr); }
+  .client-detail .contact-card .copiable { flex-wrap: wrap; }
+}
+@media (max-width: 37.5rem) {
+  .client-detail .contact-card .kv-row { align-items: flex-start; flex-direction: column; }
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────── */
+
+.client-detail .form-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 64rem) {
+  .client-detail .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 37.5rem) {
+  .client-detail .form-grid { grid-template-columns: 1fr; }
+}
+.client-detail select, .client-detail textarea { background: var(--panel-2); padding: var(--sp-3); border-radius: var(--r-md); }
+.client-detail .form-textarea { min-width: 0; }
+
+/* ── Connection details disclosure ──────────────────────────────────── */
+
+.client-detail .connection-identity { display: grid; grid-template-columns: 6.875rem minmax(0, 1fr); gap: var(--sp-2) var(--sp-3); margin: var(--sp-4) 0; }
+@media (max-width: 56.25rem) {
+  .client-detail .connection-identity { grid-template-columns: 5.625rem minmax(0, 1fr); }
+}
+.client-detail .connection-identity dt { color: var(--muted); }
+.client-detail .connection-identity dd { margin: 0; overflow-wrap: anywhere; }
+.client-detail .connection-details { margin: 0; padding: var(--sp-3) 0; border-top: 1px solid var(--border-soft); font-size: var(--fs-md); }
+.client-detail .connection-details > summary { padding: 0; cursor: pointer; color: var(--muted); font-size: var(--fs-md); }
+.client-detail .connection-details > summary:hover { color: var(--text); }
+.client-detail .connection-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ── Tickets ────────────────────────────────────────────────────────── */
+
+.client-detail .customer-ticket { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); min-width: 0; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-soft); }
+.client-detail .customer-ticket:last-child { border-bottom: 0; }
+.client-detail .customer-ticket > div { min-width: 0; overflow-wrap: anywhere; }
+.client-detail .customer-ticket h3 { font-size: var(--fs-md); margin: 0; }
+.client-detail .customer-ticket .btn { align-self: start; }
+.client-detail .ticket-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+.client-detail .customer-ticket p { font-size: var(--fs-sm); margin: var(--sp-2) 0 0; }
+.client-detail .tickets-card > .card-body:has(.customer-ticket-list) { padding: 0; }
+.client-detail .tickets-card .customer-ticket-footer { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+.client-detail .tickets-card .customer-ticket-footer > p { margin: 0; }
+.client-detail .tickets-card .card-body:has(.customer-ticket-list) > .customer-ticket-footer { padding: var(--sp-4); }
+.client-detail .tickets-card > .muted { padding: var(--sp-3) var(--sp-4); margin: 0; font-size: var(--fs-sm); border-bottom: 1px solid var(--border-soft); }
+.client-detail .tickets-card table { font-size: var(--fs-sm); }
+.client-detail .tickets-card th { text-transform: none; letter-spacing: 0; background: transparent; }
+.client-detail .tickets-card td { padding: var(--sp-3) var(--sp-2); }
+/* Quiet status line: tiny dot + muted text, no border or fill. */
+.client-detail .ticket-source-note { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: var(--sp-2) var(--sp-4); font-size: var(--fs-sm); }
+.client-detail .ticket-source-note::before { content: ""; flex: none; width: .375rem; height: .375rem; border-radius: 50%; background: var(--muted); opacity: .7; }
+.client-detail .ticket-filters { display: flex; gap: var(--sp-1); padding: var(--sp-4) var(--sp-4); border-bottom: 1px solid var(--border-soft); }
+.client-detail .ticket-filters [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+/* ── Antenna / connection card ──────────────────────────────────────── */
+
+.client-detail #antenna-selection { width: 100%; max-width: 100%; min-width: 0; margin-bottom: var(--sp-4); }
+.client-detail [data-antenna-status] { color: var(--muted); font-size: var(--fs-sm); margin: var(--sp-3) 0 0; line-height: 1.45; }
+.client-detail .antenna-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--sp-2); }
+@media (max-width: 37.5rem) {
+  .client-detail .antenna-metrics { grid-template-columns: minmax(0, 1fr); }
+  .client-detail .antenna-metrics .antenna-actions button { grid-column: 1; justify-self: start; }
+  .client-detail .antenna-metrics .antenna-actions button[hx-post$="/actualizar"] { grid-row: 6; }
+  .client-detail .antenna-metrics .antenna-actions button[hx-post$="/ping"] { grid-row: 7; }
+}
+.client-detail .antenna-metrics[aria-busy="true"] { opacity: .7; }
+.client-detail .antenna-metrics + .antenna-metrics { margin-top: var(--sp-4); }
+.client-detail .antenna-metrics > .kv-row { flex-direction: column; align-items: stretch; padding: var(--sp-3) var(--sp-3); gap: var(--sp-1); border: 0; background: var(--panel-2); border-radius: var(--r-md); }
+.client-detail .antenna-header { grid-column: 1 / -1; display: none; }
+.client-detail .antenna-header > .chip { text-transform: none; font-weight: 400; letter-spacing: 0; }
+.client-detail .antenna-identity { position: static; width: auto; height: auto; padding: 0; overflow: hidden; clip-path: none; white-space: normal; display: block; font-size: var(--fs-sm); color: var(--muted); }
+.client-detail .technical-card:has(.antenna-metrics + .antenna-metrics) .antenna-identity { font-size: var(--fs-xs); text-transform: none; }
+.client-detail .antenna-metrics .kv-k { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .5px; white-space: normal; }
+.client-detail .antenna-metrics .kv-v { text-align: left; font-family: var(--font-ui); font-size: var(--fs-lg); font-weight: 500; overflow-wrap: break-word; }
+.client-detail .antenna-metrics .btn { font-size: var(--fs-sm); font-weight: 500; padding: var(--sp-3); text-align: center; overflow-wrap: break-word; }
+.client-detail .antenna-metrics .notice { margin-bottom: 0; }
+.client-detail .antenna-metrics > .notice,
+.client-detail .antenna-retry > .muted { grid-column: 1 / -1; }
+.client-detail .antenna-metrics > .toolbar { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin: 0; }
+.client-detail .antenna-management { grid-column: 1 / -1; display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin: 0; }
+
+/* Snapshot and ping footers: two quiet rows under the measurements. */
+.client-detail .antenna-metrics > .antenna-updated { grid-column: 1; grid-row: 2; }
+.client-detail .antenna-metrics > .antenna-ping-updated { grid-column: 1; grid-row: 3; margin-top: var(--sp-3); }
+.client-detail .antenna-metrics > .antenna-snapshot-footer,
+.client-detail .antenna-metrics > .antenna-ping-footer { min-width: 0; display: block; padding: var(--sp-4) 0; border-top: 1px solid var(--border-soft); background: transparent; border-radius: 0; }
+.client-detail .antenna-snapshot-footer .kv-k,
+.client-detail .antenna-ping-footer .kv-k { display: inline; font-size: var(--fs-md); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.client-detail .antenna-snapshot-footer .kv-v,
+.client-detail .antenna-ping-footer .kv-v { font-size: var(--fs-sm); color: var(--muted); }
+.client-detail .antenna-snapshot-footer .btn,
+.client-detail .antenna-ping-footer .btn { flex-shrink: 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-md); }
+.client-detail .ping-saved-time { display: block; margin-top: var(--sp-1); }
+
+/* Icon-only actions sit in the second column of the measurement grid; the
+   wrappers vanish so the buttons are grid items of .antenna-metrics. */
+.client-detail .antenna-actions { display: contents; }
+.client-detail .antenna-actions > .toolbar { display: contents; }
+.client-detail .antenna-actions > .muted { grid-column: 1 / -1; }
+.client-detail .antenna-actions button { grid-column: 2; align-self: center; display: inline-flex; align-items: center; justify-content: center; width: var(--btn-icon); height: var(--btn-icon); padding: 0; }
+.client-detail .antenna-actions button[hx-post$="/actualizar"] { grid-row: 2; }
+.client-detail .antenna-actions button[hx-post$="/ping"] { grid-row: 3; }
+.client-detail .antenna-actions button .customer-action-icon { width: 1.125rem; height: 1.125rem; }
+
+/* Secondary diagnostics stay compact; the native disclosure is closed by default. */
+.client-detail .antenna-diagnostics { grid-row: 5; margin: 0; padding: var(--sp-3) 0; border-top: 1px solid var(--border-soft); font-size: var(--fs-md); }
+.client-detail .antenna-diagnostics .kv-v { font-size: var(--fs-sm); }
+.client-detail .antenna-diagnostics > summary { padding: 0; color: var(--muted); font-size: var(--fs-md); }
+.client-detail .antenna-diagnostics > summary:hover { color: var(--text); }
+.client-detail .antenna-diagnostics summary { display: list-item; }
+.client-detail .antenna-diagnostics .antenna-management { display: flex; flex-wrap: wrap; margin-top: var(--sp-2); }
+
+/* Link cards: air, undo inherited header chrome, keep labels on one line. */
+.client-detail .antenna-link-caption { margin: 0 0 var(--sp-3); color: var(--muted); }
+.client-detail .link-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--sp-4); }
+.client-detail .link-card { padding: var(--sp-4) var(--sp-4) var(--sp-3); }
+.client-detail .link-card-head { margin-bottom: var(--sp-4); padding: 0; border: 0; background: transparent; }
+.client-detail .link-card-signal { margin-bottom: var(--sp-4); }
+.client-detail .link-card-capacity { margin-bottom: var(--sp-4); }
+.client-detail .link-row { padding: var(--sp-2) 0; }
+.client-detail .link-k { flex: none; white-space: nowrap; }
+.client-detail .link-v { min-width: 0; }
+
+/* The swap fragment has no customer context: its labels swap here. */
+.client-detail .customer-live-ping { display: none; }
+.client-detail .noncustomer-label { display: none; }
+.client-detail .customer-label { display: inline; }
+.client-detail .ping-saved-time.customer-label { display: block; }
+
+/* ── Customer tabs ──────────────────────────────────────────────────── */
+
+/* Tabs enhance the readable, no-JS stacked sections. */
+.client-detail .customer-workspace { min-width: 0; }
+.client-detail .customer-tablist { display: flex; flex-wrap: wrap; gap: var(--sp-1); padding: 0 var(--sp-1); margin-bottom: var(--sp-4); border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+.client-detail .customer-tab { min-width: 0; padding: var(--sp-3) var(--sp-4); margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); background: transparent; font: inherit; cursor: pointer; transition: color .15s, border-color .15s; }
+.client-detail .customer-tab:hover { color: var(--text); }
+.client-detail .customer-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+.client-detail .customer-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.client-detail .customer-tab-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 21.25rem); align-items: start; gap: var(--sp-4); min-width: 0; }
+.client-detail .customer-panels, .client-detail .customer-panel, .client-detail .customer-ticket-rail { min-width: 0; }
+.client-detail .customer-panel .client-grid { grid-template-columns: minmax(0, 1fr); margin: 0; }
+.client-detail .customer-ticket-rail .tickets-card { margin: 0; }
+@media (max-width: 56.25rem) {
+  .client-detail .customer-tab-layout { grid-template-columns: minmax(0, 1fr); }
+  .client-detail .customer-ticket-rail { grid-row: 2; }
+}
+@media (max-width: 37.5rem) {
+  .client-detail .client-shell { min-width: 0; }
+  .client-detail .client-shell-left { min-width: 0; max-width: 100%; }
+  .client-detail .tabs { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  .client-detail .tab { min-width: 0; overflow-wrap: anywhere; }
+}
+@media (max-width: 23.75rem) {
+  .client-detail .customer-tablist { gap: var(--sp-1); padding: var(--sp-1); }
+  .client-detail .customer-tab { flex: 1 1 100%; text-align: left; }
+}
+
+/* ── Router Wi-Fi tab ───────────────────────────────────────────────── */
+
+.client-detail .wifi-card .wifi-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); }
+.client-detail .wifi-card .wifi-title { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+.client-detail .wifi-card .wifi-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0 0; }
+.client-detail .wifi-card .wifi-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.client-detail .wifi-card .wifi-actions > .btn { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.client-detail .wifi-card .wifi-options { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); }
+.client-detail .wifi-card .wifi-options > summary { cursor: pointer; font-size: var(--fs-md); color: var(--muted); }
+.client-detail .wifi-card .wifi-options > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.client-detail .wifi-card .wifi-options[open] > summary { color: var(--text); }
+.client-detail .wifi-card .wifi-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); }
+.client-detail .wifi-card .wifi-band-filter { display: flex; gap: var(--sp-1); }
+.client-detail .wifi-card .wifi-band-filter [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.client-detail .wifi-card .wifi-band-hint { font-size: var(--fs-sm); }
+.client-detail .wifi-card .wifi-submit { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2) var(--sp-3); margin: var(--sp-4) 0 var(--sp-2); }
+.client-detail .wifi-card .wifi-dirty { margin-right: auto; font-size: var(--fs-sm); }
+.client-detail .wifi-card .wifi-dirty[hidden], .client-detail .wifi-card .wifi-error[hidden], .client-detail .wifi-card .wifi-band-note[hidden] { display: none; }
+.client-detail .wifi-card .wifi-pass-row { display: flex; align-items: center; gap: var(--sp-2); }
+.client-detail .wifi-card .wifi-pass-row input { flex: 1 1 auto; }
+.client-detail .wifi-card .wifi-error { display: block; margin-top: 2px; font-size: var(--fs-sm); color: var(--err); }
+.client-detail .wifi-card input[aria-invalid="true"] { border-color: var(--err); }
+.client-detail .wifi-card input:disabled { opacity: .6; cursor: not-allowed; }
+.client-detail .wifi-confirm-list { margin: var(--sp-2) 0 0; padding-left: var(--sp-4); overflow-wrap: anywhere; }
+.client-detail .wifi-card .wifi-footnote { margin: 0; font-size: var(--fs-sm); text-align: center; }
+.client-detail .wifi-card .wifi-port input { width: 7rem; min-width: 0; }
+.client-detail .wifi-card .wifi-force { display: flex; flex-direction: column; gap: 2px; flex: 1 1 16rem; min-width: 0; font-size: var(--fs-sm); }
+.client-detail .wifi-card .wifi-check { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-md); cursor: pointer; }
+.client-detail .wifi-card input[type="number"] { appearance: textfield; -moz-appearance: textfield; padding: var(--sp-2) var(--sp-3); font: inherit; font-family: var(--font-ui); color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); }
+.client-detail .wifi-card input[type="number"]::-webkit-inner-spin-button, .client-detail .wifi-card input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.client-detail .wifi-card [data-wifi-action="devices"] .customer-action-icon { width: 1rem; height: 1rem; }
+.client-detail .wifi-card [data-wifi-action="devices"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.client-detail .wifi-card input[type="checkbox"] { appearance: none; flex: none; display: grid; place-content: center; width: 1.125rem; height: 1.125rem; margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; }
+.client-detail .wifi-card input[type="checkbox"]:hover { border-color: var(--accent); }
+.client-detail .wifi-card input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.client-detail .wifi-card input[type="checkbox"]:checked::after { content: ""; width: .25rem; height: .5rem; margin-top: -2px; border: solid var(--text); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.client-detail .wifi-card input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.client-detail .wifi-card input[type="password"], .client-detail .wifi-card input:not([type]) {
+  padding: var(--sp-2) var(--sp-3); font: inherit; font-family: var(--font-ui); color: var(--text);
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.client-detail .wifi-card input:focus { border-color: var(--accent); }
+.client-detail .wifi-card .field input { min-width: 0; width: 100%; }
+.client-detail .wifi-card .field-label { text-transform: none; letter-spacing: 0; font-size: var(--fs-sm); }
+.client-detail .wifi-card .wifi-bands { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin: var(--sp-1) 0 var(--sp-2); }
+.client-detail .wifi-card .wifi-bands[data-wifi-band-view="2.4GHz"], .client-detail .wifi-card .wifi-bands[data-wifi-band-view="5GHz"] { grid-template-columns: minmax(0, 1fr); }
+.client-detail .wifi-card .wifi-band[hidden] { display: none; }
+.client-detail .wifi-card .wifi-band .field { margin-top: var(--sp-2); }
+.client-detail .wifi-card .wifi-band-note { margin: 0; font-size: var(--fs-sm); }
+@media (max-width: 37.5rem) { .client-detail .wifi-card .wifi-bands { grid-template-columns: minmax(0, 1fr); } }
+.client-detail .wifi-card .wifi-band { min-width: 0; padding: var(--sp-1) var(--sp-3) var(--sp-3); background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: var(--r-md); }
+.client-detail .wifi-card .wifi-band-title { margin: var(--sp-2) 0 2px; font-size: var(--fs-md); font-weight: 600; }
+.client-detail .wifi-card .wifi-band .kv-v { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); flex: 1 1 auto; min-width: 0; }
+.client-detail .wifi-card .wifi-band .kv-row input { flex: 1 1 6rem; min-width: 0; width: 6rem; padding: var(--sp-1) var(--sp-2); font-family: var(--font-data); }
+.client-detail .wifi-card .wifi-band .btn { flex: none; white-space: nowrap; }
+.client-detail .wifi-devices-modal .wifi-devices-count { margin: 0 0 var(--sp-3); color: var(--text); font-weight: 600; }
+.client-detail .wifi-devices-modal .wifi-devices { display: grid; gap: var(--sp-3); }
+.client-detail .wifi-devices-modal .wifi-device { min-width: 0; padding: var(--sp-2) var(--sp-3); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.client-detail .wifi-devices-modal .wifi-device-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.client-detail .wifi-devices-modal .wifi-device-name { min-width: 0; margin: 0; color: var(--text); font-size: var(--fs-lg); font-weight: 600; overflow-wrap: anywhere; }
+.client-detail .wifi-devices-modal .wifi-device-connection { flex: none; max-width: 50%; color: var(--text); white-space: normal; }
+.client-detail .wifi-devices-modal .wifi-device-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2) var(--sp-3); margin: 0; }
+.client-detail .wifi-devices-modal .wifi-device-details > div { min-width: 0; }
+.client-detail .wifi-devices-modal .wifi-device-details dt { margin: 0 0 var(--sp-1); color: var(--muted); font-size: var(--fs-sm); }
+.client-detail .wifi-devices-modal .wifi-device-details dd { margin: 0; color: var(--text); font-family: var(--font-data); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.client-detail .wifi-device-pagination { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-3); }
+.client-detail .wifi-devices-modal .wifi-device[hidden] { display: none; }
+.client-detail .wifi-devices-modal .wifi-device-lease { grid-column: 1 / -1; padding-top: var(--sp-3); border-top: 1px solid var(--border-soft); }
+@media (max-width: 37.5rem) { .client-detail .wifi-devices-modal .wifi-device-details { grid-template-columns: minmax(0, 1fr); } }
+.client-detail .wifi-card [data-wifi-result] .notice { margin: var(--sp-3) 0 0; }
+
+}
+
+/* Ticket detail: the sidebar remains in normal flow; only the thread has a
+   bounded scrollport. The modal body itself remains the overflow fallback for
+   unusually long customer data, zoom and short windows. */
+.ticket-detail-compact { display: grid; grid-template-columns: minmax(0, 25rem) minmax(0, 1fr); gap: var(--sp-3); align-items: stretch; min-width: 0; }
+.ticket-category { display: flex; flex-direction: column; gap: 0; min-width: 0; padding-inline: var(--sp-3); border-left: 1px solid var(--border); overflow-wrap: anywhere; }
+.ticket-customer-code { white-space: nowrap; }
+/* The code stays machined and unbroken; the customer name is prose, so it reads
+   in the interface font and wraps without orphans. */
+.ticket-customer-name { min-width: 0; font-family: var(--font-ui); text-wrap: pretty; }
+.ticket-category-label { color: var(--muted); font-size: var(--fs-xs); }
+.ticket-category-title::before { content: none; }
+.ticket-detail-sidebar { min-width: 0; }
+.ticket-detail-summary { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.ticket-detail-compact .card { background: var(--panel-2); margin: 0 0 var(--sp-2); }
+.ticket-detail-compact .card-header { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-md); }
+.ticket-detail-compact .card-body { padding: var(--sp-2) var(--sp-3); }
+.ticket-detail-compact .kv-row { display: grid; grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr); padding: var(--sp-1) 0; gap: var(--sp-2); }
+.ticket-detail-compact .kv-v { text-align: left; overflow-wrap: anywhere; }
+.ticket-detail-compact .rail { display: flex; grid-column: 1 / -1; padding: var(--sp-2); gap: var(--sp-2); margin-bottom: 0; border-left: 3px solid var(--rail-color, var(--border)); }
+.ticket-detail-compact .rail-verdict, .ticket-detail-compact .rail-meta { display: flex; flex-direction: row; flex-wrap: wrap; padding: 0; border: 0; margin: 0; gap: var(--sp-2); }
+.ticket-detail-compact .rail-meta { margin-left: auto; }
+.ticket-detail-compact .rail .verdict { font-size: var(--fs-lg); color: var(--rail-color, var(--text)); }
+.ticket-detail-compact .form-grid.ticket-edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1) var(--sp-2); margin-bottom: var(--sp-2); }
+.ticket-detail-compact select, .ticket-detail-compact textarea { padding: var(--sp-1) var(--sp-2); background: var(--panel); }
+/* Edit selects wear the same control as the filter bar: one height, explicit
+   surface colours and a hover affordance before the focus ring. */
+.ticket-detail-compact .form-grid.ticket-edit-grid select {
+  min-height: 2.5rem; box-sizing: border-box;
+  background-color: var(--panel); color: var(--text);
+  transition: border-color .15s, background-color .15s;
+}
+.ticket-detail-compact .form-grid.ticket-edit-grid select:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.ticket-detail-thread.card { display: flex; flex-direction: column; align-self: start; max-height: 100%; min-width: 0; min-height: 0; margin: 0; }
+.ticket-detail-thread .ticket-thread-messages { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.ticket-detail-thread .comment-box { background: var(--panel-3); margin-bottom: var(--sp-2); }
+.ticket-thread-composer { padding: var(--sp-2); border-top: 1px solid var(--border-soft); background: var(--panel); }
+.ticket-thread-composer .form-textarea { margin: 0; }
+/* The one save action of the detail sits with the fields it writes. On the page
+   it closes the edit card; inside the modal it is the pinned last row of the
+   scrolling body, so it never floats far below the selects. */
+.ticket-save-foot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--sp-1) var(--sp-3); margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: 1px solid var(--border-soft);
+}
+.ticket-save-foot p { flex: 1 1 12rem; min-width: 0; margin: 0; font-size: var(--fs-xs); }
+.ticket-save-foot .btn { flex: none; margin-left: auto; white-space: normal; }
+.modal-body > .ticket-save-foot {
+  position: sticky; bottom: calc(-1 * var(--sp-4)); z-index: 1; flex: none;
+  margin: var(--sp-3) calc(-1 * var(--sp-4)) 0; padding: var(--sp-3) var(--sp-4);
+  background: var(--panel);
+}
+#ticket-detail .modal-body:has(> .ticket-save-foot) { display: flex; flex-direction: column; }
+#ticket-detail .modal-body:has(> .ticket-save-foot) > .ticket-detail-compact { flex: 1 1 auto; min-height: 0; height: auto; }
+#ticket-detail .ticket-detail-compact > .ticket-detail-sidebar { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+@media (min-width: 56.25rem) and (min-height: 37.5rem) {
+  /* The modal is as tall as its content, capped to the viewport. Past the cap the
+     compact grid shrinks and the thread's message list (and, on a short window,
+     the left column) scroll inside themselves; the body never overflows. */
+  #ticket-detail:has(.ticket-detail-compact) { width: min(80rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 1.5rem); }
+  #ticket-detail .ticket-detail-compact { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); }
+  #ticket-detail .ticket-detail-compact .kv-row { grid-template-columns: 7rem minmax(0, 1fr); padding: var(--sp-2) 0; gap: var(--sp-3); }
+  #ticket-detail .ticket-detail-compact .card-body { padding: var(--sp-3) var(--sp-4); }
+  #ticket-detail .ticket-detail-compact .card-header { padding: var(--sp-3) var(--sp-4); }
+  #ticket-detail .ticket-detail-compact { grid-template-rows: auto minmax(0, 1fr); }
+  #ticket-detail .ticket-detail-compact > .ticket-detail-thread.card { align-self: stretch; max-height: none; }
+  /* Both columns end on the same line: the left stack has no trailing margin and
+     its last card absorbs any spare height. */
+  #ticket-detail .ticket-detail-compact > .ticket-detail-sidebar { display: flex; flex-direction: column; gap: var(--sp-2); }
+  #ticket-detail .ticket-detail-sidebar .ticket-detail-summary { margin: 0; }
+  #ticket-detail .ticket-detail-sidebar .card { margin: 0; }
+  #ticket-detail .ticket-detail-sidebar > .card:last-child { flex: 1 1 auto; }
+  body:not(.client-detail) main > .ticket-detail-compact .ticket-detail-thread { max-height: min(52rem, calc(100dvh - 8rem)); }
+}
+@media (max-width: 56.25rem) {
+  .ticket-detail-compact { grid-template-columns: minmax(0, 1fr); }
+  .ticket-detail-thread.card { max-height: 24rem; }
+}
+@media (max-height: 37.5rem) {
+  .ticket-detail-thread.card { max-height: 24rem; }
+}
+@media (max-width: 23.75rem) {
+  .ticket-detail-compact .form-grid.ticket-edit-grid { grid-template-columns: 1fr; }
+}
+
+/* Tickets has exactly one vertical scroll owner. A 70vh table plus filters,
+   pagination and footer can exceed the viewport and let wheel gestures chain
+   into the page. Fit the rows to the remaining space instead of clipping the
+   document; keep short/narrow screens in normal flow with no inner vertical cap. */
+.tickets-page > main { max-width: none; }
+.tickets-page .table-scroll { max-height: none; }
+.tickets-page form.toolbar { gap: var(--sp-2); }
+.tickets-page form.toolbar > input[type="search"] { flex: 2 1 12rem; min-width: 0; }
+.tickets-page form.toolbar > select { flex: 1 1 9rem; min-width: 0; width: 9rem; }
+.tickets-page .tickets-page-size,
+.tickets-page .tickets-filter-actions {
+  display: flex; align-items: center; gap: var(--sp-2); flex: none; white-space: nowrap;
+}
+.tickets-page .tickets-page-size input { width: 5rem; min-width: 0; }
+.tickets-page .tickets-results-footer {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4);
+  padding-top: var(--sp-2);
+}
+.tickets-page .tickets-results-footer > p { margin: 0; }
+.tickets-page .tickets-results-footer .listing-pagination { margin: 0 0 0 auto; padding: 0; }
+.tickets-page > main > footer.meta { margin-top: var(--sp-2); padding-top: var(--sp-2); }
+@media (min-width: 56.25rem) and (min-height: 37.5rem) {
+  .tickets-page { height: 100dvh; display: flex; flex-direction: column; }
+  .tickets-page > .client-shell { flex: none; }
+  .tickets-page > main {
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+    padding-bottom: var(--sp-4);
+  }
+  .tickets-page > main > .toolbar,
+  .tickets-page > main > .meta { flex: none; }
+  .tickets-page #tickets-result {
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
+  }
+  .tickets-page #tickets-result > * { flex: none; }
+  .tickets-page #tickets-result > .table-scroll {
+    flex: 1; min-height: 0; overscroll-behavior-y: contain;
+  }
+}
+
+/* ── Integrated Customers / Defaulters pages ─────────────────────────── */
+.module-page .card-header { flex-wrap: wrap; }
+.module-page + .module-page { margin-top: var(--sp-4); }
+.module-page .card-header :is(h1, h2) { min-width: 0; margin: 0; font: inherit; overflow-wrap: anywhere; }
+.module-page .card-header .btn { flex: none; }
+.module-page .module-note { margin: 0 0 var(--sp-4); font-size: var(--fs-sm); }
+.module-page .module-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); margin-bottom: var(--sp-4); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.module-page .module-name { min-width: 12rem; max-width: 28rem; white-space: normal; overflow-wrap: anywhere; }
+.module-page .module-filter-form { max-width: none; }
+/* Bajas: the table needs the full card width; the schedule cell stacks its chip, author and actions. */
+.bajas-page .admin-form { max-width: none; }
+.bajas-page .baja-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 13rem; }
+.bajas-page .baja-schedule .btn { padding-block: var(--sp-1); }
+/* The /bajas listing uses the same plain, full-width canvas as Tickets.
+   Only presentation changes: review, confirmation and schedule guards stay intact. */
+.bajas-list-page > main { max-width: none; }
+.bajas-list-page .bajas-page { min-width: 0; background: transparent; border: 0; }
+.bajas-list-page .bajas-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bajas-list-page .card-body { padding: 0; }
+.bajas-list-page .bajas-command-bar { gap: var(--sp-2); }
+.bajas-list-page [data-draft-create] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+.bajas-list-page #draft-name { flex: 1 1 14rem; min-width: 0; width: 20rem; max-width: 100%; }
+.bajas-list-page .module-meta { margin: 0; }
+.bajas-list-page .bajas-tabs-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.bajas-list-page .bajas-tabs-head .operator-tablist { margin-bottom: 0; flex: 1 1 auto; }
+.bajas-list-page .module-saved-lists { margin: 0; }
+.bajas-list-page .module-saved-lists table { width: 100%; }
+.bajas-list-page .module-note { padding: 0; border: 0; background: transparent; margin-bottom: var(--sp-2); }
+.bajas-list-page .bajas-selection-help { margin: 0 0 var(--sp-2); font-size: var(--fs-sm); }
+.bajas-list-page #bajas-form { gap: var(--sp-2); margin: 0; }
+.bajas-list-page #bajas-form > p { margin: 0; font-size: var(--fs-sm); }
+.bajas-list-page :is(#draft-create-error, #bajas-error):empty { display: none; }
+.bajas-list-page #draft-create-error { flex-basis: 100%; margin: 0; }
+.bajas-list-page .table-scroll { max-height: none; min-width: 0; max-width: 100%; overflow-x: auto; }
+.bajas-list-page #bajas-form table { width: 100%; table-layout: fixed; }
+.bajas-list-page #bajas-form :is(th, td) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.bajas-list-page .baja-col-number { width: 2.25rem; }
+.bajas-list-page .baja-col-select { width: 2.5rem; }
+.bajas-list-page .baja-col-ticket { width: 4rem; }
+.bajas-list-page .baja-col-date { width: 7.5rem; }
+.bajas-list-page [data-baja-row] > td:nth-child(4) { white-space: nowrap; }
+.bajas-list-page .baja-col-code, .bajas-list-page .baja-col-assigned { width: 4.5rem; }
+.bajas-list-page .baja-col-balance { width: 5rem; }
+.bajas-list-page .baja-col-schedule { width: 13.5rem; }
+/* Name takes the spare width; a long comment stays a readable column. */
+.bajas-list-page .baja-col-comment { width: 30%; }
+.bajas-list-page #bajas-form :is(th, td):first-child { padding-inline: var(--sp-2); }
+.bajas-list-page #bajas-form .module-name { max-width: none; }
+.bajas-list-page [data-baja-comment] { overflow-wrap: anywhere; }
+.bajas-list-page thead th a { color: inherit; }
+.bajas-list-page input[type="checkbox"] { width: 16px; height: 16px; margin: 0; }
+.bajas-list-page .baja-schedule { min-width: 0; }
+.bajas-list-page .listing-pagination { margin: 0; padding: 0; }
+.bajas-list-page .listing-pagination:empty { display: none; }
+.bajas-list-page > main > footer.meta { margin-top: var(--sp-2); padding-top: var(--sp-2); }
+@media (min-width: 56.251rem) and (min-height: 50rem) {
+  .bajas-list-page { height: 100dvh; display: flex; flex-direction: column; }
+  .bajas-list-page > .client-shell { flex: none; }
+  .bajas-list-page > main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--sp-4); }
+  .bajas-list-page :is(.bajas-page, .bajas-page > .card-body, .operator-tabs, .operator-tabpanel[data-operator-panel="tickets"]:not([hidden]), #bajas-form) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .bajas-list-page :is(.card-body > :not(.operator-tabs), .bajas-tabs-head, .operator-tabpanel[data-operator-panel="tickets"] > :not(form), #bajas-form > *), .bajas-list-page > main > footer.meta { flex: none; }
+  .bajas-list-page .operator-tabpanel > #bajas-form,
+  .bajas-list-page #bajas-form > .table-scroll { flex: 1; min-height: 0; }
+  .bajas-list-page .table-scroll { overflow: auto; overscroll-behavior-y: contain; }
+}
+@media (max-width: 56.25rem) {
+  .bajas-list-page #bajas-form table { min-width: 64rem; }
+  .bajas-list-page .baja-col-comment { width: 17rem; }
+}
+@media (max-width: 56.25rem), (max-height: 49.999rem) {
+  .bajas-list-page .table-scroll { overflow-x: auto; }
+  .bajas-list-page .bajas-command-bar > .spacer { display: none; }
+  .bajas-list-page .bajas-command-bar > [data-draft-create] { flex-basis: 100%; }
+}
+.module-page .module-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: var(--sp-3); }
+.module-page .module-filter-form .field { min-width: 0; }
+.module-page .module-filter-form input { width: 100%; min-width: 0; }
+.customer-list-page .customer-status-filter { min-width: 0; position: relative; }
+.customer-list-page .customer-status-filter > summary { cursor: pointer; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel); overflow-wrap: anywhere; }
+.customer-list-page .customer-status-options { position: absolute; top: 100%; left: 0; width: 100%; z-index: 10; max-height: 18rem; overflow: auto; padding: var(--sp-2); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel); box-shadow: var(--shadow-lift); }
+.customer-list-page .customer-status-filter:not([open]) > .customer-status-options { display: none; }
+.customer-list-page .customer-status-filter p { margin: 0 0 var(--sp-1); }
+.customer-list-page .customer-status-filter label { display: flex; align-items: center; gap: var(--sp-2); padding-block: var(--sp-1); }
+.customer-list-page .customer-status-filter input[type="checkbox"] { width: auto; flex: none; accent-color: var(--accent); }
+.module-page .module-filter-advanced { padding: var(--sp-3); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--panel-2); }
+.module-page .module-filter-advanced summary { display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; font-weight: 500; font-size: var(--fs-sm); }
+.module-page .module-filter-advanced summary::before { content: '+'; color: var(--muted); }
+.module-page .module-filter-advanced[open] summary::before { content: '−'; }
+.module-page .module-filter-advanced[open] summary { margin-bottom: var(--sp-3); }
+.module-page .module-filter-advanced .module-help { margin-top: var(--sp-3); }
+.module-page .module-filter-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.module-page .module-count { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+.module-page .module-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.module-page .module-input { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); min-width: 0; max-width: none; margin: 0; padding: var(--sp-4); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--panel-2); }
+.module-page .module-input .section-title { margin: 0; }
+.module-page .module-input .field { width: 100%; min-width: 0; }
+.module-page .module-input input, .module-page .module-input input[type="text"] { width: 100%; min-width: 0; max-width: 100%; }
+.module-page .module-help { margin: 0; font-size: var(--fs-sm); }
+.module-page .module-input > .btn { margin-top: auto; }
+.module-page input[type="file"] { padding: var(--sp-2); font: inherit; font-size: var(--fs-sm); color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); }
+.module-page input[type="file"]::file-selector-button { margin-right: var(--sp-2); padding: var(--sp-1) var(--sp-2); font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; }
+.module-page input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
+.module-page .module-section { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--border-soft); }
+.module-page .module-section > .muted { font-size: var(--fs-sm); }
+.module-page .module-run-form { margin-bottom: 0; }
+.module-page .module-run-form > .btn { justify-self: start; }
+.module-page .module-run-form .field { max-width: 18rem; }
+.module-page .module-run-form .perm-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1) var(--sp-4); background: var(--panel-2); }
+.module-page .module-run-form .perm-check { font-size: var(--fs-sm); }
+.module-page .module-run-form [role="status"], .module-page .module-run-form [role="alert"] { margin: 0; overflow-wrap: anywhere; }
+.module-page .module-run-form [role="status"]:empty, .module-page .module-run-form [role="alert"]:empty { display: none; }
+.module-page .module-action-details { min-width: 18rem; max-width: 36rem; white-space: normal; overflow-wrap: anywhere; }
+.module-page .module-jobs { display: grid; gap: var(--sp-2); list-style: none; margin: 0; padding: 0; }
+.module-page .module-jobs li { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: 1px solid var(--border-soft); }
+@media (max-width: 56.25rem) {
+  .module-page .module-inputs { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 37.5rem) {
+  .module-page .module-filter-actions > .btn { flex: 1 1 auto; }
+  .module-page .module-run-form .perm-group { grid-template-columns: minmax(0, 1fr); }
+  .module-page .module-run-form > .btn { justify-self: stretch; }
+  .module-page .card-header .btn { max-width: 100%; }
+}
+
+/* Clientes uses the Tickets viewport rhythm without changing shared modules.
+   Expanded advanced filters deliberately return to a single page scroll. */
+.customers-page > main { max-width: none; }
+.customers-page .customer-list-page { border: 0; background: transparent; box-shadow: none; }
+.customers-page .customer-list-page > .card-header { padding: 0; border: 0; margin-bottom: var(--sp-2); }
+.customers-page .customer-list-page > .card-body { padding: 0; }
+.customers-page .module-filter-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.customers-page .customer-primary-filters { display: contents; }
+/* Keep accessible names for the labels; the page title stays visible like every other section. */
+.customers-page .module-filter-form > .field:first-child > label,
+.customers-page .customer-primary-filters .field-label {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.customers-page .module-filter-form > .field:has(#page-size) { display: flex; flex-direction: row; align-items: center; gap: var(--sp-2); width: auto; white-space: nowrap; }
+.customers-page #page-size { width: 5rem; }
+.customers-page .module-filter-form > .field:has(#page-size) label { margin: 0; }
+.customers-page .module-filter-form > .field:first-child { flex: 2 1 14rem; }
+.customers-page .customer-primary-filters > .field { flex: 1 1 9rem; }
+.customers-page .module-filter-form .field { min-width: 0; }
+.customers-page .module-filter-form .field-label { font-size: var(--fs-sm); }
+.customers-page .module-filter-form > .field:has(#page-size) { flex: none; }
+.customers-page .module-filter-form :is(input:not([type="checkbox"]), select, summary, .btn) { min-height: 2.5rem; box-sizing: border-box; }
+.customers-page .module-filter-form :is(input, select, .customer-status-filter > summary) { transition: border-color .15s, background-color .15s; }
+.customers-page .module-filter-form :is(input:not([type="checkbox"]), select, .customer-status-filter > summary):hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.customers-page .module-filter-form :is(input:not([type="checkbox"]), select) { background-color: var(--panel); color: var(--text); }
+.customers-page .customer-status-filter > summary { display: flex; align-items: center; }
+.customers-page .page-size-field .field-label { position: static; width: auto; height: auto; margin: 0; clip-path: none; text-transform: none; letter-spacing: 0; font-size: var(--fs-sm); }
+.customers-page .page-size-field #page-size { width: 5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.customers-page .module-filter-actions { margin-left: auto; }
+.customers-page .module-filter-advanced:not([open]) { padding: 0; border: 0; background: transparent; }
+.customers-page .module-filter-advanced:not([open]) > summary { display: inline-flex; width: auto; padding: 0 var(--sp-3); border: 1px dashed var(--border); border-radius: var(--r-md); color: var(--muted); transition: color .15s, border-color .15s; }
+.customers-page .module-filter-advanced:not([open]) > summary:hover { color: var(--text); border-color: var(--accent); }
+.customers-page .module-filter-advanced > summary { min-height: 2.25rem; }
+.customers-page .module-filter-advanced { margin-top: var(--sp-1); }
+.customers-page .module-filter-actions { flex: none; flex-wrap: nowrap; white-space: nowrap; }
+.customers-page .module-filter-advanced { order: 1; flex-basis: 100%; padding: var(--sp-1) var(--sp-2); }
+.customers-page .module-note { padding: var(--sp-1) var(--sp-2); margin-bottom: var(--sp-2); }
+.customers-page .customer-status-filter > summary { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.customers-page .customer-status-options { min-width: 12rem; max-width: calc(100vw - 3rem); }
+.customers-page .table-scroll { max-height: none; }
+.customers-page .customer-results-footer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding-top: var(--sp-2); }
+.customers-page .customer-results-footer > p { margin: 0; }
+.customers-page .customer-results-footer .listing-pagination { margin: 0 0 0 auto; padding: 0; }
+.customers-page > main > footer.meta { margin-top: var(--sp-2); padding-top: var(--sp-2); }
+@media (min-width: 56.25rem) and (min-height: 37.5rem) {
+  .customers-page:not(:has(.module-filter-advanced[open])) { height: 100dvh; display: flex; flex-direction: column; }
+  .customers-page:not(:has(.module-filter-advanced[open])) > .client-shell { flex: none; }
+  .customers-page:not(:has(.module-filter-advanced[open])) > main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--sp-4); }
+  .customers-page:not(:has(.module-filter-advanced[open])) .customer-list-page,
+  .customers-page:not(:has(.module-filter-advanced[open])) .customer-list-page > .card-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .customers-page .customer-list-page > .card-header,
+  .customers-page .card-body > :not(.table-scroll),
+  .customers-page > main > footer.meta { flex: none; }
+  .customers-page:not(:has(.module-filter-advanced[open])) .table-scroll { flex: 1; min-height: 0; overscroll-behavior-y: contain; }
+}
+
+/* ── Login ──────────────────────────────────────────────────────────── */
+
+.login-page { display: grid; place-items: center; min-height: 100vh; padding: var(--sp-5); }
+.login-card { width: min(100%, 22rem); }
+.login-form { display: grid; gap: var(--sp-3); }
+.login-form label { font-size: .9em; color: var(--muted); }
+.login-form input[type="text"], .login-form input[type="password"] {
+  padding: var(--sp-2) var(--sp-3);
+  font: inherit;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.login-form input:focus { border-color: var(--accent); }
+
+/* ── Admin: users and roles ───────────────────────────────────────── */
+.admin-subnav { display: flex; gap: var(--sp-2); margin-bottom: var(--gap); }
+.admin-form { display: grid; gap: var(--sp-3); margin-bottom: var(--sp-5); max-width: 40rem; }
+.admin-form.admin-inline { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; }
+.admin-form input[type="text"], .admin-form input[type="password"] { min-width: 14rem; }
+.perm-group { border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: var(--sp-3); margin: 0; }
+.perm-group legend { padding: 0 var(--sp-2); font-weight: 600; }
+.perm-section { margin-bottom: var(--sp-3); }
+.perm-check { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) 0; }
+.perm-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 12rem; align-items: center; gap: var(--sp-3); padding: var(--sp-1) 0; }
+/* Cada permiso se lee una vez: nombre, estado efectivo y excepción en la misma fila. */
+.perm-name { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+/* Encabezados de las columnas que comparten todas las áreas. */
+.perm-columns { display: grid; grid-template-columns: minmax(0, 1fr) auto 12rem; align-items: center; gap: var(--sp-3); padding: var(--sp-1) calc(var(--sp-3) + 1px); color: var(--muted); font-size: var(--fs-xs); font-weight: 600; }
+@media (max-width: 37.5rem) {
+  .perm-columns { display: none; }
+}
+.perm-note { color: var(--warn); font-size: var(--fs-sm); line-height: 1.4; }
+@media (max-width: 37.5rem) {
+  .perm-row { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--sp-1); }
+}
+.perm-effective { margin: 0; padding-left: var(--sp-5); }
+
+/* Scoped, reusable operator flow: the host shell retains its compact scale. */
+.operator-flow { font-size: 18px; line-height: 1.6; color: var(--text); }
+.operator-flow .operator-result-clients { display: grid; gap: var(--sp-4); }
+.operator-flow .operator-result-client { border: 1px solid var(--border); border-radius: var(--sp-2); padding: var(--sp-3); min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+.operator-flow .operator-result-client h3 { margin: 0; font-size: 1.15em; }
+.operator-flow .operator-result-status { margin-block: var(--sp-2); font-weight: 700; }
+.operator-flow .operator-result-actions { list-style: none; margin: 0; padding: 0; }
+.operator-flow .operator-result-action { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding-block: var(--sp-2); border-top: 1px solid var(--border); }
+.operator-flow .operator-result-action strong { flex: 1 1 15em; }
+.operator-flow .operator-result-action span { flex: 2 1 20em; }
+.operator-flow .operator-result-client .is-success { color: var(--operator-result-success); }
+.operator-flow .operator-result-client .is-review { color: var(--operator-result-review); }
+[data-theme="dark"] .operator-flow .operator-result-client .is-success { color: var(--operator-result-success-dark); }
+[data-theme="dark"] .operator-flow .operator-result-client .is-review { color: var(--operator-result-review-dark); }
+.operator-flow .btn, .operator-flow input, .operator-flow .field-label,
+.operator-flow .perm-check, .operator-flow .chip, .operator-flow .module-meta,
+.operator-flow .module-help, .operator-flow .module-note { font-size: inherit; }
+.operator-flow .field-label { text-transform: none; letter-spacing: normal; color: var(--text); }
+.operator-flow .btn, .operator-flow .field input, .operator-flow summary,
+.operator-flow .perm-check { min-height: 44px; }
+.operator-flow details {
+  min-width: 0; margin-block: var(--sp-2); padding: 0;
+  border: 0; background: transparent; color: var(--text); white-space: normal;
+}
+.operator-flow details > summary {
+  display: list-item; align-content: center; min-height: 44px; padding-block: var(--sp-2);
+  cursor: pointer; font-size: 18px; font-weight: 400; color: var(--text);
+  background: transparent; text-decoration: underline; text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.operator-flow details > summary:hover { text-decoration-thickness: 2px; }
+.operator-flow details > :not(summary) { margin-block: var(--sp-2); }
+.operator-flow details code, .operator-flow details pre {
+  display: block; padding: var(--sp-3); border-radius: var(--r-sm);
+  background: var(--panel-2); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.operator-flow .module-run-form .perm-check { font-size: 18px; }
+.operator-flow .module-run-form { max-width: none; }
+.operator-flow .module-run-form .perm-group { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+.operator-flow .operator-action { align-items: flex-start; gap: var(--sp-3); padding-block: var(--sp-3); }
+.operator-flow .operator-action > span { min-width: 0; }
+.operator-flow .operator-action input { margin-top: var(--sp-1); }
+.operator-flow .operator-action-description { display: block; font-weight: 400; }
+.operator-flow .module-schedule { margin-block: var(--sp-4); }
+.operator-flow .module-schedule h3 { font-size: 18px; margin-bottom: var(--sp-2); }
+.operator-flow .perm-check { cursor: pointer; }
+.operator-flow input[type="checkbox"] { width: 24px; height: 24px; flex: none; }
+.operator-flow .muted, .operator-flow .chip { color: var(--text); }
+.operator-flow :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.operator-flow td { white-space: normal; overflow-wrap: anywhere; }
+.operator-flow #run-review { padding: var(--sp-4); border: 2px solid var(--border-strong); border-radius: var(--r-md); background: var(--panel-2); }
+.operator-flow #run-review .btn { margin-block: var(--sp-2); }
+.operator-flow [hidden] { display: none !important; }
+
+.operator-flow .module-note { margin-bottom: var(--sp-3); padding-block: var(--sp-2); }
+.operator-flow .module-section { margin-top: var(--sp-4); padding-top: var(--sp-3); }
+.operator-flow .section-title { margin: var(--sp-3) 0 var(--sp-2); }
+.operator-flow .module-meta { margin-bottom: var(--sp-3); }
+/* Customer links from the operator lists, and the way back from the sheet. */
+.operator-flow .customer-link { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.operator-flow .customer-link:hover { text-decoration-thickness: 2px; }
+/* Keep the return action in flow so it cannot cover freshness or error text. */
+.customer-back { display: flex; justify-content: flex-end; margin: 0 0 var(--sp-3); }
+.customer-back .btn {
+  min-height: 44px; padding: var(--sp-2) var(--sp-5);
+  border-radius: 999px; font-size: 18px; font-weight: 600; color: var(--on-accent);
+  background: var(--accent-2); border-color: transparent; box-shadow: var(--shadow-lift);
+  transition: box-shadow .12s, background .12s;
+}
+.customer-back .btn:hover { background: var(--accent-2-hover); box-shadow: var(--shadow-lift); filter: brightness(1.08); }
+/* Operator tables use the shared table chrome and the shared capped scroll box,
+   so their header sticks exactly like the Ticket and Baja lists. */
+.operator-flow table { font-size: var(--fs-md); }
+/* ...but their controls keep the flow's readable 18px targets inside cells. */
+.operator-flow table .btn, .operator-flow table input, .operator-flow table textarea,
+.operator-flow table summary, .operator-flow table .operator-pick { font-size: 18px; }
+.operator-flow [id] { scroll-margin-top: 5rem; }
+.operator-flow .operator-skip { margin: 0 0 var(--sp-3); }
+.operator-flow .module-run-form .field { max-width: none; }
+.operator-flow .module-run-form .field input { width: min(100%, 22rem); }
+.operator-flow .operator-list-name { max-width: 32rem; margin-bottom: var(--sp-3); }
+.operator-flow .operator-list-name input { width: 100%; }
+@media (min-width: 56.25rem) {
+  .operator-flow .operator-list-name { max-width: none; flex-direction: row; align-items: center; gap: var(--sp-3); }
+  .operator-flow .operator-list-name .field-label { flex: none; }
+  .operator-flow .operator-list-name input { width: min(100%, 28rem); }
+  .operator-flow .operator-list-name .btn { flex: none; }
+}
+.operator-flow .operator-status-filter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-5); margin-bottom: var(--sp-3); }
+.operator-flow .operator-status-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-5); }
+.operator-flow .operator-status-filter .perm-check { padding-block: 0; }
+/* Whole cell is the target, with a visible word next to the box. */
+.operator-flow .operator-pick { display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; cursor: pointer; }
+.operator-flow .operator-table tbody tr:has(input[name="selected"]:checked) { background: color-mix(in srgb, var(--blue) 14%, var(--panel)); }
+.operator-flow .operator-table td p { margin: var(--sp-1) 0 0; }
+.operator-flow .operator-table td p:first-child { margin-top: 0; }
+.operator-flow .operator-row-edit { min-width: 16rem; }
+.operator-flow .operator-row-edit form { display: grid; gap: var(--sp-2); margin: 0 0 var(--sp-2); }
+.operator-flow .operator-row-edit label { display: grid; gap: var(--sp-1); }
+.operator-flow .operator-row-edit textarea { width: 100%; min-width: 0; box-sizing: border-box; font-size: 18px; }
+/* The create button stays in reach however long the candidate list is. */
+.operator-flow .operator-sticky-actions {
+  position: sticky; bottom: 0; z-index: 5; margin-top: var(--sp-3); padding: var(--sp-3) 0;
+  background: var(--panel); border-top: 2px solid var(--border-strong);
+}
+.operator-flow .operator-sticky-actions p { margin: var(--sp-2) 0 0; }
+@media (max-width: 37.5rem) {
+  /* Cards instead of a table that has to be dragged sideways. */
+  .operator-flow .operator-table, .operator-flow .operator-table tbody, .operator-flow .operator-table tr, .operator-flow .operator-table td { display: block; width: 100%; box-sizing: border-box; }
+  /* The header keeps only its sort links, as a row of buttons-like links. */
+  .operator-flow .operator-table thead tr { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-3); padding: 0; border: 0; }
+  .operator-flow .operator-table thead th { display: block; width: auto; padding: var(--sp-2) 0; border: 0; background: transparent; }
+  .operator-flow .operator-table thead th:not(:has(a)) { display: none; }
+  .operator-flow .operator-table thead a { display: inline-block; min-height: 44px; padding-block: var(--sp-2); }
+  .operator-flow .operator-table tbody tr { margin-bottom: var(--sp-3); border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); }
+  .operator-flow .operator-table td { border: 0; padding: var(--sp-1) 0; }
+  .operator-flow .operator-table td[data-label]::before { content: attr(data-label); display: block; font-weight: 700; }
+  .operator-flow .module-name { min-width: 0; max-width: none; }
+}
+
+/* Interesados: the decision is edited in a modal; the page itself is styled in refresh.css and list-page.css. */
+.prospect-modal .modal-body { display: grid; gap: var(--sp-3); align-content: start; }
+.prospect-modal .prospect-offer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.prospect-modal .prospect-offer[hidden] { display: none; }
+.prospect-modal input, .prospect-modal select { width: 100%; min-width: 0; box-sizing: border-box; }
+
+/* Operational selection owns the desktop viewport; opening management returns
+   every table to document flow. Detail safety/action sections always stay in
+   document flow. No root clipping and no changes to shared operator targets. */
+/* Compact candidate chrome and tables; detail safety controls retain operator scale. */
+.module-tables-page .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.module-tables-page .module-candidates-page { font-size: var(--fs-md); line-height: 1.5; }
+.module-tables-page .operator-flow table { line-height: 1.5; }
+.module-tables-page .module-candidates-page :is(.btn, input, textarea, summary, .operator-pick, .perm-check),
+.module-tables-page .operator-flow table :is(.btn, input, textarea, summary, .operator-pick) { min-height: 0; font-size: inherit; }
+.module-tables-page .module-candidates-page .btn,
+.module-tables-page .operator-flow table .btn { font-size: var(--fs-sm); }
+.module-tables-page .module-candidates-page input[type="checkbox"] { width: 16px; height: 16px; margin: 0; }
+.module-tables-page .module-candidates-page .operator-pick { position: relative; justify-content: center; }
+.module-tables-page [data-draft-selection] :is(th, td):first-child { width: 1%; white-space: nowrap; }
+.module-tables-page .operator-flow .customer-link { color: inherit; text-decoration: none; }
+.module-tables-page .operator-flow .customer-link:hover { text-decoration: underline; }
+.module-tables-page .module-candidates-page details > summary { padding-block: var(--sp-1); }
+.module-tables-page > main { max-width: none; padding-top: var(--sp-2); }
+.module-tables-page .module-note { margin-bottom: var(--sp-2); }
+.module-tables-page .module-page { overflow: visible; }
+.module-tables-page .table-scroll { max-height: none; overflow: visible; }
+/* Detail tables can exceed the available width as columns are added. */
+.module-tables-page .module-table-detail .table-scroll { max-width: 100%; overflow-x: auto; }
+.module-tables-page thead th { top: var(--shell-h); }
+.module-tables-page .card-header { padding: var(--sp-1) 0; border: 0; }
+.module-tables-page .card-body { padding: 0; }
+.module-tables-page .module-page { border: 0; background: transparent; }
+.module-tables-page .module-candidate-selection > .section-title { margin: 0 0 var(--sp-2); }
+.module-tables-page .module-candidate-selection > p { margin: 0 0 var(--sp-2); }
+.module-tables-page .operator-status-filter { gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-2); }
+.module-tables-page .module-candidate-filter-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.module-tables-page .operator-list-name { margin-bottom: var(--sp-2); }
+.module-tables-page .operator-sticky-actions { position: static; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding-block: var(--sp-1); margin-top: 0; background: transparent; }
+.module-tables-page .operator-sticky-actions p { margin: 0; flex: 1 1 20rem; }
+/* Sortable headers read like the plain Tickets headers, not like links. */
+:is(.module-tables-page, .customers-page) thead th a { color: inherit; }
+/* Entry points of a list module: build from the system, load a CSV, saved lists. */
+.operator-tablist { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-bottom: var(--sp-3); border-bottom: 1px solid var(--border); }
+.operator-tab { min-width: 0; padding: var(--sp-2) var(--sp-4); margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); background: transparent; font: inherit; cursor: pointer; transition: color .15s, border-color .15s; }
+.operator-tab:hover { color: var(--text); }
+.operator-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.operator-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.operator-tablist[hidden], .operator-tabpanel[hidden] { display: none; }
+.operator-tabpanel + .operator-tabpanel { margin-top: var(--sp-4); }
+.operator-tabs[data-ready] .operator-tabpanel + .operator-tabpanel { margin-top: 0; }
+.module-tables-page .module-secondary { display: flex; flex-wrap: wrap; gap: 0 var(--sp-5); }
+.module-tables-page .module-secondary > details { margin: 0; }
+.module-tables-page .module-secondary:has(details[open]) { display: block; }
+.module-tables-page > main > footer.meta { margin-top: var(--sp-2); padding-top: var(--sp-2); }
+/* Suspensiones only: filtering above, named creation below the selection. */
+.suspensions-candidates .operator-status-group { gap: var(--sp-2); }
+.suspensions-candidates .operator-status-filter { gap: var(--sp-2); }
+.suspensions-candidates .candidate-page-size { display: flex; align-items: center; gap: var(--sp-2); }
+.suspensions-candidates .candidate-page-size input { width: 5rem; min-width: 0; }
+.suspensions-candidates .candidate-results-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding-top: var(--sp-1); }
+.suspensions-candidates .candidate-results-footer > p { margin: 0; }
+.suspensions-candidates .candidate-results-footer .listing-pagination { margin: 0 0 0 auto; padding: 0; }
+.suspensions-candidates .candidate-command-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+.suspensions-candidates .candidate-command-name { display: flex; flex: 1 1 18rem; align-items: center; gap: var(--sp-2); min-width: 0; }
+.suspensions-candidates .candidate-command-name input { flex: 1; min-width: 0; }
+.suspensions-candidates .candidate-command-bar > details { margin: 0; }
+.suspensions-candidates .candidate-command-bar > details[open] { flex: 1 0 100%; order: 9; }
+@media (max-width: 56.25rem) {
+  .suspensions-candidates .candidate-command-bar .btn { max-width: 100%; }
+}
+@media (min-width: 56.251rem) and (min-height: 50rem) {
+  .module-tables-page:has([data-draft-selection]):not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) { height: 100dvh; display: flex; flex-direction: column; }
+  .module-tables-page > .client-shell { flex: none; }
+  .module-tables-page:has([data-draft-selection]):not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) > main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: var(--sp-4); }
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) :is(.module-candidates-page, .module-candidates-page > .card-body, .operator-tabs, .operator-tabpanel[data-operator-panel="candidates"], .module-candidate-selection, [data-draft-selection]) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .module-tables-page .module-candidates-page :is(.card-header, .card-body > :not(.operator-tabs), .operator-tablist, .module-candidate-selection > *, [data-draft-selection] > *) { flex: none; }
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) .module-candidates-page .module-candidate-selection,
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) .module-candidate-selection [data-draft-selection],
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) [data-draft-selection] > .table-scroll { flex: 1; min-height: 0; }
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) [data-draft-selection] > .table-scroll { overflow: auto; overscroll-behavior-y: contain; }
+  .module-tables-page:not(:has(:is(.module-secondary, .candidate-command-bar) details[open], .operator-tabpanel:not([data-operator-panel="candidates"]):not([hidden]))) [data-draft-selection] th { top: 0; }
+  .module-tables-page > main > footer.meta { flex: none; }
+}
+@media (max-width: 56.25rem) {
+  .module-tables-page thead th { top: 0; }
+  .module-tables-page .table-scroll { overflow-x: auto; }
+  .module-tables-page .admin-form input[type="text"] { min-width: 0; max-width: 100%; }
+  /* Intrinsic input widths must not set the grid track at 320px. */
+  .module-tables-page .module-table-detail .admin-form { grid-template-columns: minmax(0, 1fr); }
+  .module-tables-page .module-table-detail .field { min-width: 0; }
+  .module-tables-page .module-table-detail .field input { width: 100%; }
+  .module-tables-page .module-table-detail .operator-row-edit { min-width: 0; }
+}
+
+/* Spanish replacement for the browser-localised file control (see enhanceFilePickers in app.js). */
+.file-native { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.file-picker { display: inline-flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-inline-end: var(--sp-3); }
+.file-native:focus-visible + .file-picker .btn { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A command bar with no actions (no candidates yet) is an empty bordered strip. */
+.suspensions-candidates .candidate-command-bar:not(:has(*)) { display: none; }
+
+/* Native controls follow the single accent; sortable headers keep a 24px hit area. */
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+thead th > a { display: inline-flex; align-items: center; min-width: 1.5rem; min-height: 1.5rem; color: inherit; }
+thead th > a:hover, thead th > a:focus-visible { color: var(--text); }
+
+/* Wide layout with the script active: Operaciones, Gestión and Herramientas become
+   menus; Atención, Dirección and Ayuda stay direct links in a single row. The compact
+   (menu button) layout is untouched, so every link keeps its place there. */
+.nav-group-links { display: contents; }
+html[data-nav-menus] .client-shell .tabs { width: max-content; gap: var(--sp-1); }
+@media (min-width: 64.0625rem) { html[data-nav-menus] .client-shell .tabs { flex-wrap: nowrap; } }
+html[data-nav-menus] .client-shell .nav-group { position: relative; gap: var(--sp-1); }
+html[data-nav-menus] .client-shell .nav-group:not([data-nav-menu]) > .nav-group-label:not(.nav-group-label-single) { display: none; }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label {
+  display: inline-flex; align-items: center; gap: var(--sp-1); padding: var(--sp-1) var(--sp-2);
+  color: var(--muted); font-size: var(--fs-md); font-weight: 400; line-height: 1.35; cursor: pointer;
+  border-radius: var(--r-md); user-select: none;
+}
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label::after { content: "▾"; font-size: .8em; opacity: .7; }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label:hover,
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu][data-open] > .nav-group-label { color: var(--text); background: var(--panel-2); }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu][data-has-active] > .nav-group-label { color: var(--text); font-weight: 600; }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links {
+  display: none; position: absolute; top: calc(100% + var(--sp-1)); left: 0; z-index: 20;
+  flex-direction: column; min-width: 12rem; padding: var(--sp-1);
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-lift);
+}
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu][data-open] > .nav-group-links { display: flex; }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links .tab { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); font-size: var(--fs-md); }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links .tab:hover { background: var(--panel-2); }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links .tab.active { border-radius: var(--r-sm); }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links .tab-external-first { margin-left: 0; padding-left: var(--sp-3); }
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A menu with a single visible destination shows it as a plain link. */
+html[data-nav-menus] .client-shell .nav-group[data-nav-solo] > .nav-group-label { display: none; }
+html[data-nav-menus] .client-shell .nav-group[data-nav-solo] > .nav-group-links { display: contents; }
+
+/* One title per section, and one tab language: underlined, accent only on the current tab. */
+.page-title { margin: 0 0 var(--sp-3); font-size: var(--fs-xl); font-weight: 600; line-height: 1.25; color: var(--text); }
+.admin-subnav { gap: 0; border-bottom: 1px solid var(--border-soft); }
+.admin-subnav .btn, .admin-subnav .btn.primary { padding: var(--sp-2) var(--sp-4); margin-bottom: -1px; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); font-weight: 400; }
+.admin-subnav .btn:hover { color: var(--text); }
+.admin-subnav .btn.primary, .admin-subnav .btn[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Figures that answer a question ("how many closed today?") read as data, not prose. */
+.figure { font-family: var(--font-data); font-size: var(--fs-lg); font-weight: 600; }
+
+/* One title voice: every section title reads at the page-title size, inside a card or loose. */
+.card-header > h1, .module-page .card-header > h1, .client-detail .card-header > h1 { font-size: var(--fs-xl); font-weight: 600; line-height: 1.25; color: var(--text); }
+.customers-page .customer-list-page > .card-header { padding: 0; margin-bottom: var(--sp-2); }
+
+/* Phones: the folded rail (fixed, left) sits under the header's second row, so that row starts beside it
+   instead of behind it; wide tables show a shadow on the side that still has content. */
+@media (max-width: 37.5rem) {
+  .client-shell-right { padding-inline-start: calc(var(--rail-w-closed) - var(--sp-3) + var(--sp-1)); box-sizing: border-box; }
+  .table-scroll {
+    background:
+      linear-gradient(90deg, var(--panel) 30%, transparent) left center / 2rem 100% no-repeat local,
+      linear-gradient(270deg, var(--panel) 30%, transparent) right center / 2rem 100% no-repeat local,
+      linear-gradient(90deg, var(--scroll-shade), transparent) left center / .75rem 100% no-repeat scroll,
+      linear-gradient(270deg, var(--scroll-shade), transparent) right center / .75rem 100% no-repeat scroll;
+  }
+}
+
+/* Header links read in near-body contrast; the muted grey was too faint on the dark panel. */
+html[data-nav-menus] .client-shell .tab:not(.active),
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu]:not([data-has-active]) > .nav-group-label { color: color-mix(in srgb, var(--text) 82%, var(--muted)); }
+/* A menu holding the current page reads like an active tab: tinted, square at the bottom, sitting on the baseline. */
+html[data-nav-menus] .client-shell .nav-group[data-nav-menu][data-has-active] > .nav-group-label { background: color-mix(in srgb, var(--accent) 38%, var(--panel)); border-radius: var(--r-md) var(--r-md) 0 0; }
+
+/* Laptops and up: 15px header type; a 1366px screen only fits the row with tight link padding and a short search box. */
+@media (min-width: 64.0625rem) {
+  html[data-nav-menus] .client-shell .tab,
+  html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label,
+  html[data-nav-menus] .client-shell .nav-group-label-single,
+  html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-links .tab { font-size: var(--fs-nav); }
+  html[data-nav-menus] .client-shell .tab { padding: var(--sp-2) var(--sp-1); }
+  html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label { padding: var(--sp-2) var(--sp-1); }
+  html[data-nav-menus] .client-shell .tabs { gap: 0; }
+  html[data-nav-menus] .client-shell .client-search-hint { display: none; }
+  html[data-nav-menus] .client-shell .client-search input[type="search"] { width: 5rem; }
+}
+/* Wider screens keep the laptop's 15px type and only get a little more link padding. */
+@media (min-width: 90rem) {
+  html[data-nav-menus] .client-shell .tab { padding: var(--sp-2) .375em; }
+  html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label { padding: var(--sp-2) .375em; }
+  html[data-nav-menus] .client-shell .client-search input[type="search"] { width: 6rem; }
+}
+@media (min-width: 105rem) {
+  html[data-nav-menus] .client-shell .tab { padding: var(--sp-2) var(--sp-2); }
+  html[data-nav-menus] .client-shell .nav-group[data-nav-menu] > .nav-group-label { padding: var(--sp-2) var(--sp-2); }
+  html[data-nav-menus] .client-shell .client-search-hint { display: inline-flex; }
+  html[data-nav-menus] .client-shell .client-search input[type="search"] { width: 8rem; }
+}
+@media (min-width: 120rem) {
+  html[data-nav-menus] .client-shell .client-search input[type="search"] { width: 9rem; }
+}
+
+/* Suspensiones list detail: scoped to .defaulters-page.suspensiones-detail so Bajas (.operator-flow) is untouched. */
+.defaulters-page.suspensiones-detail .card-header h1 { font-size: var(--fs-xl); font-weight: 700; }
+.defaulters-page.suspensiones-detail .section-title { font-size: var(--fs-xl); margin-bottom: var(--sp-3); }
+.defaulters-page.suspensiones-detail .defaulters-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-5); margin-bottom: var(--sp-3); }
+.defaulters-page.suspensiones-detail .defaulters-toolbar .module-meta { margin: 0; }
+.defaulters-page.suspensiones-detail .defaulters-toolbar-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.defaulters-page.suspensiones-detail .operator-table { font-size: 16px; }
+.defaulters-page.suspensiones-detail .operator-table th { font-size: var(--fs-sm); }
+.defaulters-page.suspensiones-detail .operator-table td { padding-block: var(--sp-3); }
+.defaulters-page.suspensiones-detail .operator-table td[data-label="Código"] { white-space: nowrap; }
+.defaulters-page.suspensiones-detail .module-section { margin-top: var(--sp-6); padding-top: var(--sp-5); }
+.defaulters-page.suspensiones-detail #list-actions { padding: var(--sp-5); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--panel-2); }
+.defaulters-page.suspensiones-detail #list-actions .perm-group { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); padding: 0; border: 0; background: transparent; }
+.defaulters-page.suspensiones-detail #list-actions .perm-group legend { float: left; grid-column: 1 / -1; width: 100%; padding: 0; margin: 0; font-size: var(--fs-xl); font-weight: 600; }
+.defaulters-page.suspensiones-detail #list-actions .operator-action { padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border-soft); border-radius: var(--r-md); background: var(--panel); }
+.defaulters-page.suspensiones-detail .defaulters-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); margin-block: var(--sp-4); }
+.defaulters-page.suspensiones-detail .defaulters-dates .module-schedule { margin: 0; }
+.defaulters-page.suspensiones-detail .defaulters-dates h3 { margin: 0 0 var(--sp-2); }
+.defaulters-page.suspensiones-detail .defaulters-dates p { font-size: 15px; margin: var(--sp-2) 0 0; }
+.defaulters-page.suspensiones-detail .list-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; }
+@media (max-width: 37.5rem) {
+  .defaulters-page.suspensiones-detail #list-actions { padding: var(--sp-3); }
+  .defaulters-page.suspensiones-detail #list-actions .perm-group, .defaulters-page.suspensiones-detail .defaulters-dates { grid-template-columns: minmax(0, 1fr); }
+}
+/* The select-all box heads a long column: a large target makes the sweep easy to hit. */
+html body th input[type="checkbox"][data-select-all], html body th input[type="checkbox"]#bajas-all { width: 24px; height: 24px; margin: 0; cursor: pointer; }
+th:has(> .operator-pick > [data-select-all]) .operator-pick, th:has(> #bajas-all) { min-width: 44px; min-height: 44px; padding: var(--sp-2); cursor: pointer; }
+
+/* Web Interface Guidelines pass: skip link, shared sr-only, touch, modal scroll chaining, numerals, headings. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.skip-link { position: absolute; left: var(--sp-3); top: var(--sp-3); transform: translateY(-300%); z-index: 1000; padding: var(--sp-2) var(--sp-3); background: var(--panel); color: var(--text); border: 1px solid var(--accent); border-radius: var(--r-md); }
+.skip-link:focus-visible { transform: none; }
+a, button, summary, label, select, input[type="checkbox"], input[type="radio"] { touch-action: manipulation; }
+.modal { overscroll-behavior: contain; }
+h1, h2, h3, .page-title { text-wrap: balance; }
+table td, table th, .num { font-variant-numeric: tabular-nums; }
+
+/* Ticket history: the changes timeline of the ticket window and the customer's history dialog. */
+.ticket-timeline { grid-column: 1 / -1; }
+.ticket-timeline-list { margin: 0; padding-left: var(--sp-4); display: grid; gap: var(--sp-2); }
+.ticket-history-results { overflow-x: auto; }
+.ticket-history-table { width: 100%; border-collapse: collapse; }
+.ticket-history-table th, .ticket-history-table td { text-align: left; padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--border-soft); }
+.ticket-history-table tr.row-link { cursor: pointer; }
+.ticket-history-dates { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }

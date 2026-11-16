@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="/rm-tools/demo/demo.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Panel · rm-tools</title>
+  <script>
+    // Only explicit choices override the responsive default; never persist it.
+    document.documentElement.toggleAttribute('data-nav-compact', window.matchMedia('(max-width: 1024px)').matches);
+    var railDefault = window.matchMedia('(max-width: 900px)').matches ? 'closed' : 'open';
+    try {
+      var r = localStorage.getItem('rm.rail');
+      document.documentElement.setAttribute('data-rail', r === 'closed' || r === 'open' ? r : railDefault);
+    } catch (e) {
+      document.documentElement.setAttribute('data-rail', railDefault);
+    }
+  </script>
+  
+<script>
+  // Apply the saved theme before styles load to avoid a flash of dark UI.
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('rm.theme') === 'light' ? 'light' : 'dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
+
+<script src="/rm-tools/static/theme.js" defer></script>
+  <script src="/rm-tools/static/htmx.min.js"></script>
+  <script src="/rm-tools/static/panel-antenna.js" defer></script>
+  <script src="/rm-tools/static/panel-wifi.js" defer></script>
+  <script src="/rm-tools/static/panel-customer-tabs.js" defer></script>
+  <script src="/rm-tools/static/panel-search.js" defer></script>
+  <script src="/rm-tools/static/panel-scroll-restore.js" defer></script>
+  <script src="/rm-tools/static/panel-open-clients.js" defer></script>
+  <script defer src="/rm-tools/demo/fresh.js"></script>
+<script src="/rm-tools/static/app.js" defer></script>
+  <script src="/rm-tools/static/panel-ticket-actions.js" defer></script>
+  <script src="/rm-tools/static/panel-form-actions.js" defer></script>
+  <script src="/rm-tools/static/shell-navigation.js" defer></script>
+  <link rel="stylesheet" href="/rm-tools/static/styles.css">
+  <link rel="stylesheet" href="/rm-tools/static/refresh.css">
+  
+</head>
+<body>
+<div class="demo-banner" role="note">Demo con datos ficticios. Los cambios no se guardan. <a href="/">← Inicio</a> · <a href="https://github.com/frankirova/rm-tools-showcase">Ficha del proyecto</a></div>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+  
+<aside class="open-clients-rail" id="open-clients-rail" aria-label="Clientes abiertos">
+  <div class="rail-head">
+    <span>Clientes abiertos</span>
+    <button type="button" class="rail-toggle" data-rail-toggle aria-label="Plegar rail" aria-expanded="true">‹</button>
+  </div>
+  <ul class="rail-list" data-rail-list></ul>
+  <form class="rail-session" method="post" action="/logout" data-demo-blocked title="No disponible en la demo">
+    <span class="session-user" title="Usuario actual">soporte1</span>
+    
+    <button class="btn ghost rail-logout" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión (soporte1)"><span class="rail-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg></span><span class="rail-logout-text">Cerrar sesión</span></button>
+  </form>
+</aside>
+  
+  <header class="client-shell">
+    <div class="client-shell-left">
+      <a class="client-logo" href="/rm-tools/">rm-tools</a>
+      <div class="shell-navigation">
+      <button class="shell-navigation-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="main-navigation" aria-label="Abrir navegación">
+        <span aria-hidden="true">☰</span><span>Menú</span>
+        
+        <span class="shell-current-module">· Panel</span>
+      </button>
+      <nav class="tabs" id="main-navigation" aria-label="Navegación principal">
+        
+        <a class="tab active" aria-current="page" href="/rm-tools/">Panel</a>
+        <a class="tab " href="/rm-tools/clientes/">Clientes</a>
+        <a class="tab " href="/rm-tools/tickets/">Tickets</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Interesados</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Copiloto (beta)</a>
+        
+        <a class="tab " href="/rm-tools/defaulters/listas/">Suspensiones</a>
+        <a class="tab " href="/rm-tools/desconexiones/listas/">Desconexiones</a>
+        <a class="tab " href="/rm-tools/bajas/">Bajas</a>
+        <a class="tab " href="/rm-tools/cobranzas/">Cobranzas</a>
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Empresas</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Usuarios</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Agentes</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Nodos</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Operaciones</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Archivo</a>
+        
+        
+        <a class="tab " href="/rm-tools/no-disponible/">Dirección</a>
+        <a class="tab " href="/rm-tools/no-disponible/">Ayuda</a>
+        <a class="tab tab-external tab-external-first" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">Autogestión</a>
+        <a class="tab tab-external" href="#" aria-disabled="true" title="No disponible en la demo" target="_blank" rel="noopener noreferrer">NetMap</a>
+      </nav>
+      </div>
+    </div>
+    <div class="client-shell-right">
+    
+<div class="theme-selector" role="group" aria-label="Tema de la app">
+  <button type="button" class="theme-option" data-theme-toggle="light" aria-label="Modo claro" title="Modo claro" aria-pressed="false"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg></button>
+  <button type="button" class="theme-option" data-theme-toggle="dark" aria-label="Modo oscuro" title="Modo oscuro" aria-pressed="true"><svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg></button>
+</div>
+    <form class="client-search" action="/" role="search" data-client-search aria-controls="client-search" aria-expanded="false">
+      <input type="hidden" name="buscar" value="1">
+      <span aria-hidden="true"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21"/></svg></span>
+      <input type="search" name="q" placeholder="Buscar cliente…" aria-label="Buscar cliente">
+      <kbd class="client-search-hint" aria-hidden="true" data-search-hint>Ctrl+K</kbd>
+    </form>
+    </div>
+  </header>
+  <noscript><style>.client-shell { height: auto; min-height: 3.75rem; } .client-shell-left { flex-wrap: wrap; } .shell-navigation { flex-basis: 100%; } .client-shell .tabs { display: flex; flex-wrap: wrap; } .client-shell .nav-group { flex-wrap: wrap; max-width: 100%; } .shell-navigation-toggle { display: none; }</style></noscript>
+  
+
+  <main id="main-content" tabindex="-1">
+    
+<div class="panel-head">
+  <h1 class="page-title">Panel</h1>
+  <span class="muted" title="Actualizar fuerza una consulta a ISPCube; los errores conservan los últimos datos guardados.">Se sincroniza solo cada 10 minutos.</span>
+  <button class="btn"
+          hx-post="/refresh"
+          hx-target="#panel-body"
+          hx-swap="innerHTML"
+          hx-indicator="#refresh-spinner"
+          title="Fuerza una consulta a ISPCube; si falla, se conservan los últimos datos guardados.">
+    Actualizar <span class="spinner" id="refresh-spinner"></span>
+  </button>
+</div>
+
+
+<div class="panel-layout">
+  <div id="panel-chill" hx-get="/panel/chill" hx-trigger="every 180s" hx-swap="innerHTML">
+    <div class="panel-main">
+<section class="card panel-tickets" aria-labelledby="panel-tickets-title">
+  <div class="card-header">
+    <h2 id="panel-tickets-title">Tickets por grupo</h2>
+    <span class="muted">Hora argentina · 7 días incluye hoy</span>
+  </div>
+  
+  
+  
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+  
+  <p class="notice" data-chill-quiet>Sin cierres hoy ni en los últimos 7 días en ningún grupo.</p>
+  <div class="table-scroll">
+  <table class="panel-groups">
+    <thead><tr>
+      <th scope="col">Grupo</th>
+      <th scope="col" class="num">Pendientes</th>
+      <th scope="col">Espera más larga</th>
+      <th scope="col" class="num">Cerrados hoy</th>
+      <th scope="col" class="num">Cerrados en 7 días</th>
+    </tr></thead>
+    <tbody>
+    
+    <tr data-chill-group="bajas">
+      <th scope="row">Bajas</th>
+      <td class="num figure" data-chill-pending>5</td>
+      <td>
+        
+        
+        <details class="panel-oldest">
+          <summary><strong>20 días</strong> <span class="muted">desde 26/10/2026 21:00</span></summary>
+          <ol aria-label="Los 5 más antiguos">
+            
+            <li data-oldest><span>26/10/2026 21:00</span><span>20 días</span></li>
+            
+            <li data-oldest><span>27/10/2026 21:00</span><span>19 días</span></li>
+            
+            <li data-oldest><span>01/11/2026 21:00</span><span>14 días</span></li>
+            
+            <li data-oldest><span>06/11/2026 21:00</span><span>9 días</span></li>
+            
+            <li data-oldest><span>11/11/2026 21:00</span><span>4 días</span></li>
+            
+          </ol>
+        </details>
+        
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="service">
+      <th scope="row">Service técnico</th>
+      <td class="num figure" data-chill-pending>0</td>
+      <td>
+        <span class="muted">—</span>
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="instalaciones">
+      <th scope="row">Instalaciones</th>
+      <td class="num figure" data-chill-pending>5</td>
+      <td>
+        
+        
+        <details class="panel-oldest">
+          <summary><strong>18 días</strong> <span class="muted">desde 28/10/2026 21:00</span></summary>
+          <ol aria-label="Los 5 más antiguos">
+            
+            <li data-oldest><span>28/10/2026 21:00</span><span>18 días</span></li>
+            
+            <li data-oldest><span>29/10/2026 21:00</span><span>17 días</span></li>
+            
+            <li data-oldest><span>03/11/2026 21:00</span><span>12 días</span></li>
+            
+            <li data-oldest><span>08/11/2026 21:00</span><span>7 días</span></li>
+            
+            <li data-oldest><span>13/11/2026 21:00</span><span>2 días</span></li>
+            
+          </ol>
+        </details>
+        
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="suspensiones">
+      <th scope="row">Suspensiones</th>
+      <td class="num figure" data-chill-pending>10</td>
+      <td>
+        
+        
+        <details class="panel-oldest">
+          <summary><strong>21 días</strong> <span class="muted">desde 25/10/2026 21:00</span></summary>
+          <ol aria-label="Los 5 más antiguos">
+            
+            <li data-oldest><span>25/10/2026 21:00</span><span>21 días</span></li>
+            
+            <li data-oldest><span>25/10/2026 21:00</span><span>21 días</span></li>
+            
+            <li data-oldest><span>26/10/2026 21:00</span><span>20 días</span></li>
+            
+            <li data-oldest><span>30/10/2026 21:00</span><span>16 días</span></li>
+            
+            <li data-oldest><span>31/10/2026 21:00</span><span>15 días</span></li>
+            
+          </ol>
+        </details>
+        
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="rehabilitaciones">
+      <th scope="row">Rehabilitaciones</th>
+      <td class="num figure" data-chill-pending>0</td>
+      <td>
+        <span class="muted">—</span>
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="cobranza">
+      <th scope="row">Cobranza</th>
+      <td class="num figure" data-chill-pending>5</td>
+      <td>
+        
+        
+        <details class="panel-oldest">
+          <summary><strong>19 días</strong> <span class="muted">desde 27/10/2026 21:00</span></summary>
+          <ol aria-label="Los 5 más antiguos">
+            
+            <li data-oldest><span>27/10/2026 21:00</span><span>19 días</span></li>
+            
+            <li data-oldest><span>28/10/2026 21:00</span><span>18 días</span></li>
+            
+            <li data-oldest><span>02/11/2026 21:00</span><span>13 días</span></li>
+            
+            <li data-oldest><span>07/11/2026 21:00</span><span>8 días</span></li>
+            
+            <li data-oldest><span>12/11/2026 21:00</span><span>3 días</span></li>
+            
+          </ol>
+        </details>
+        
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    <tr data-chill-group="otros">
+      <th scope="row">Otros</th>
+      <td class="num figure" data-chill-pending>0</td>
+      <td>
+        <span class="muted">—</span>
+      </td>
+      <td class="num" data-chill-today>0</td>
+      <td class="num" data-chill-week>0</td>
+    </tr>
+    
+    </tbody>
+  </table>
+  </div>
+  <p class="muted panel-note">Solo cantidades y fechas: sin datos de clientes. Las fechas desconocidas van al final.</p>
+</section>
+</div>
+<aside class="panel-side">
+<section id="network-live" hx-get="/panel/red-ahora" hx-trigger="load" hx-swap="outerHTML">
+  <h2>Estado de la red ahora</h2>
+  <p class="muted">Sin evidencia actual todavía. Consultando…</p>
+</section>
+<section class="card panel-freshness" aria-labelledby="panel-freshness-title">
+  <div class="card-header"><h2 id="panel-freshness-title">Frescura de los datos</h2></div>
+  <ul>
+    
+    <li><span class="fresh-label">Clientes:</span> <span class="fresh-age">sin datos</span></li>
+    
+    <li><span class="fresh-label">Conexiones:</span> <span class="fresh-age">sin datos</span></li>
+    
+    <li><span class="fresh-label">Caja:</span> <span class="fresh-age">sin datos</span></li>
+    
+    <li><span class="fresh-label">Tickets abiertos:</span> <span class="fresh-age">actualizado hace 14 min</span></li>
+    
+    <li><span class="fresh-label">Tickets cerrados:</span> <span class="fresh-age">actualizado hace 14 min</span></li>
+    
+    <li><span class="fresh-label">Padrón:</span> <span class="fresh-age">actualizado hace 14 min</span></li>
+    
+  </ul>
+  <p class="muted panel-note">Cada recurso conserva su última lectura exitosa; se comprueba cada 3 minutos.</p>
+</section>
+</aside>
+  </div>
+  <section id="incident-active" class="card" aria-labelledby="incident-active-title"
+         hx-get="/panel/incidentes" hx-trigger="every 180s" hx-swap="outerHTML">
+  <h2 id="incident-active-title">Incidentes activos</h2>
+  
+  <p>Sin recolección de incidentes todavía. Estado actual desconocido.</p>
+  
+  
+  <details class="panel-caveat"><summary>Cómo leer este resumen</summary>
+    <p>Resumen del detector horario guardado, no una medición en vivo. Umbrales iniciales sin calibrar. Actualización automática cada 3 minutos.</p>
+  </details>
+</section>
+</div>
+<div id="panel-body">
+  
+
+
+
+
+
+
+<div class="cards">
+  <section class="card">
+    <div class="card-header">Conexiones y clientes</div>
+    <div class="card-body">
+      
+        
+        
+        
+        
+  
+    <div class="stat is-empty">
+      <span class="stat-num">—</span>
+      <span class="stat-label">conexiones activas</span>
+      <span class="muted"><span class="chip">sin datos</span></span>
+    </div>
+  
+
+        
+        
+        <div class="kv">
+          
+  <div class="kv-row">
+    <span class="kv-k">clientes habilitados</span>
+    
+      <span class="kv-v"><span class="chip">sin datos</span></span>
+    
+  </div>
+
+          
+  <div class="kv-row">
+    <span class="kv-k">clientes con conexión</span>
+    
+      <span class="kv-v"><span class="chip">sin datos</span></span>
+    
+  </div>
+
+          
+  <div class="kv-row">
+    <span class="kv-k">clientes en el padrón</span>
+    
+      <span class="kv-v">25</span>
+    
+  </div>
+
+        </div>
+      
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Zonas y nodos</div>
+    <div class="card-body">
+      
+        
+        
+  
+    <div class="stat">
+      <span class="stat-num">1</span>
+      <span class="stat-label">nodos con clientes</span>
+    </div>
+  
+
+        <span class="chips"><span class="chip">1 zonas · 6 activos</span></span>
+        <div class="kv">
+          
+            
+  <div class="kv-row">
+    <span class="kv-k">Nodo Este</span>
+    
+      <span class="kv-v">6</span>
+    
+  </div>
+
+          
+          
+        </div>
+        <div class="chips">
+          
+            <span class="chip info">sin ciudad: 6</span>
+          
+          
+        </div>
+      
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">Soporte</div>
+    <div class="card-body">
+      
+        
+  
+    <div class="stat">
+      <span class="stat-num">25</span>
+      <span class="stat-label">tickets abiertos</span>
+    </div>
+  
+
+        <div class="kv">
+          
+  <div class="kv-row">
+    <span class="kv-k">cerrados (30 días)</span>
+    
+      <span class="kv-v">0</span>
+    
+  </div>
+
+        </div>
+        <div class="chips">
+          
+            <span class="chip info">Abierto: 13</span>
+          
+            <span class="chip info">En curso: 12</span>
+          
+        </div>
+        <div class="chips">
+          
+            
+            <span class="chip">Baja: 9</span>
+          
+            
+            <span class="chip warn">Media: 8</span>
+          
+            
+            <span class="chip err">Alta: 8</span>
+          
+        </div>
+      
+    </div>
+  </section>
+</div>
+
+
+</div>
+
+
+    <footer class="meta" id="meta" >
+  <span>Última actualización: <time datetime="2026-11-16T15:33:25.904025+00:00">16/11/2026 12:33</time></span>
+  
+  
+  
+  <span>Uso del mes: 0 consultas</span>
+  <span>Fuente: ISPCube (on-premise)</span>
+  
+</footer>
+  </main>
+
+  
+
+<dialog class="modal" id="client-search" data-backdrop-close aria-label="Buscar clientes">
+  <div class="modal-head"><h2>Buscar clientes</h2><button class="btn btn-icon-sm" type="button" data-modal-close aria-label="Cerrar"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 6 18 18M18 6 6 18"/></svg></button></div>
+  <div class="modal-body">
+    <input class="search-input" type="search" name="q"
+           placeholder="Código, documento, nombre o IP…"
+           aria-label="Buscar cliente"
+           autocomplete="off" spellcheck="false"
+           hx-get="/clientes/buscar"
+           hx-target="#client-search-results"
+           hx-trigger="keyup changed delay:250ms, search"
+           autofocus>
+    <div class="chip-row" role="group" aria-label="Filtros de resultados">
+      <button class="chip active" type="button" aria-pressed="true" data-search-filter="todas">Todas</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="enabled">Habilitados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="blocked">Bloqueados</button>
+      <button class="chip" type="button" aria-pressed="false" data-search-filter="deuda">Con deuda</button>
+    </div>
+    <div id="client-search-results" class="search-list">
+      
+        
+  
+    <div class="empty">Buscá por código, documento, nombre o IP.
+      <span class="search-hint"><kbd>/</kbd> abrir búsqueda
+        <kbd>↑</kbd><kbd>↓</kbd> moverse entre resultados
+        <kbd>Enter</kbd> abrir el primer resultado</span>
+    </div>
+  
+      
+    </div>
+    <p class="muted" data-filter-empty hidden>Sin coincidencias con este filtro.</p>
+  </div>
+</dialog>
+</body>
+</html>
